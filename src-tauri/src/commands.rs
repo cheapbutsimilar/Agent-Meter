@@ -251,9 +251,33 @@ pub fn changelog() -> &'static str {
     include_str!("../../CHANGELOG.md")
 }
 
+/// async: looking for agy.exe runs `where` and checks its signature.
 #[tauri::command]
-pub fn setup_status() -> Value {
-    crate::setup::status()
+pub async fn setup_status(app: AppHandle) -> Value {
+    let path = app
+        .state::<AppState>()
+        .settings()
+        .provider("antigravity")
+        .antigravity_path;
+    crate::setup::status(&path)
+}
+
+/// "찾아보기…": pick agy.exe by hand. Returns its path once it checks out as the official,
+/// Google-signed CLI (None if the dialog was closed). async: the dialog blocks.
+#[tauri::command]
+pub async fn antigravity_pick(app: AppHandle) -> Result<Option<String>, String> {
+    use tauri_plugin_dialog::DialogExt;
+    let picked = app
+        .dialog()
+        .file()
+        .set_title("agy.exe")
+        .add_filter("agy.exe", &["exe"])
+        .blocking_pick_file();
+    let Some(path) = picked.and_then(|p| p.into_path().ok()) else {
+        return Ok(None);
+    };
+    agentmeter_antigravity::verify(&path)?;
+    Ok(Some(path.to_string_lossy().into_owned()))
 }
 
 #[tauri::command]
@@ -285,7 +309,8 @@ pub fn handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Send + Sync + 'static 
         update_later,
         changelog,
         setup_status,
-        setup_connect
+        setup_connect,
+        antigravity_pick
     ]
 }
 

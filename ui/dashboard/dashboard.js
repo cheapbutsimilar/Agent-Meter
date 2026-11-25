@@ -24,7 +24,7 @@
   const ui = {
     metric: 'tokens',
     range: 30,
-    agents: new Set(['claude', 'codex', 'gemini', 'grok']),
+    agents: new Set(['claude', 'codex', 'gemini', 'antigravity', 'grok']),
     displayTab: S.settings.mode === 'floating' ? 'floating' : 'taskbar',
     recording: null,
     hotkeyErrors: S.hotkeyErrors || [],
@@ -52,7 +52,7 @@
   // ---------------------------------------------------------------- shown agents & connect
   const isShown = (p) => cfgOf(p.id).visible !== false;
   const FABLE_IDS = ['7d_fable', '5h_fable'];
-  const CONNECT_NAMES = { claude: 'Claude Code', codex: 'Codex', gemini: 'Gemini CLI' };
+  const CONNECT_NAMES = { claude: 'Claude Code', codex: 'Codex', gemini: 'Gemini CLI', antigravity: 'Antigravity CLI' };
   /** "원클릭 연결" when the agent's CLI isn't logged in (or the API says so). */
   function connectBtn(p, { always = false } = {}) {
     const st = (S.setup || {})[p.id];
@@ -65,6 +65,7 @@
   function connectText(p) {
     const st = (S.setup || {})[p.id];
     const name = CONNECT_NAMES[p.id];
+    if (p.id === 'antigravity' && (!st || !st.supported)) return tr('ag.agy.winOnly');
     if (!st || !st.supported) return tr('connect.notNeeded');
     if (!st.cli) return tr('connect.notInstalled', { name });
     if (!st.login) return tr('connect.needLogin', { name });
@@ -83,6 +84,8 @@
     if (!p.enabled) return `<span class="status"><i></i>${esc(tr('status.off'))}</span>`;
     if (U.isActive(p, now)) return `<span class="status live"><i></i>${esc(tr('status.working'))}</span>`;
     if (!p.detected) return `<span class="status"><i></i>${esc(tr('status.notFound'))}</span>`;
+    // Antigravity has no activity log, only its limit readings
+    if (p.id === 'antigravity') return `<span class="status"><i></i>${esc(p.limitsAt ? tr('ag.limitsAt', { t: U.relTime(p.limitsAt, now) }) : tr('ov.waiting'))}</span>`;
     return `<span class="status"><i></i>${esc(tr('status.last', { t: U.relTime(p.tokens.lastEventAt, now) }))}</span>`;
   }
 
@@ -199,14 +202,15 @@
       if (wins.length) html += wins.map((w) => limitRow(w, now)).join('');
       else
         html += `<div class="note muted">${
-          esc(p.id === 'grok' ? tr('ov.grokNote') : p.id === 'codex' ? tr('ov.codexNote') : p.detected ? tr('ov.waiting') : tr('ov.noLogs'))
+          esc(p.id === 'grok' ? tr('ov.grokNote') : p.id === 'antigravity' && !p.detected ? tr('ov.agyNote') : p.id === 'codex' ? tr('ov.codexNote') : p.detected ? tr('ov.waiting') : tr('ov.noLogs'))
         }</div>`;
-      html +=
+      // Antigravity writes no token logs: no token or cost figures to show
+      if (p.id !== 'antigravity') html +=
         `<div class="astats"><div><div class="k">${esc(tr('ov.today'))}</div><div class="v">${U.fmtNum(t.today)}</div></div>` +
         `<div><div class="k">${esc(tr('ov.last5h'))}</div><div class="v">${U.fmtNum(t.last5h)}</div></div>` +
         `<div><div class="k">${esc(tr('ov.last7d'))}</div><div class="v">${U.fmtNum(t.week)}</div></div>` +
         `<div><div class="k">${esc(tr('ov.costToday'))}</div><div class="v">${U.fmtMoneyHtml(t.costToday)}</div></div></div>`;
-      html += sparkline(p);
+      if (p.id !== 'antigravity') html += sparkline(p);
       const note = [p.apiError, p.commandError, p.scanError].filter(Boolean).map(I18N.apiError).join(' · ');
       const btn = connectBtn(p);
       if (note || btn) html += `<div class="note-row">${note ? `<div class="note">${esc(note)}</div>` : '<span></span>'}${btn}</div>`;
@@ -494,7 +498,7 @@
     html += `<div class="grid2">`;
     for (const p of providers()) {
       const c = cfgOf(p.id);
-      const hasApi = p.id === 'claude' || p.id === 'gemini' || p.id === 'codex';
+      const hasApi = ['claude', 'codex', 'gemini', 'antigravity'].includes(p.id);
       const hidden = c.hiddenWindows || [];
       html += `<div class="card acfg"><div class="ah">${R.logo(p.id, 22)}<span class="nm">${esc(U.AGENTS[p.id].product)}</span><span class="sp"></span>${statusOf(p, Date.now())}</div>`;
       html += `<div class="src">${tr(`ag.${p.id}`)}</div>`;
@@ -503,7 +507,7 @@
       html += rowT('ag.show', sw(`data-prov="${p.id}" data-key="visible"`, c.visible !== false));
       html += row(esc(tr('ag.login')), esc(connectText(p)), connectBtn(p, { always: true }));
       if (hasApi) html += rowT('ag.api', sw(`data-prov="${p.id}" data-key="useApi"`, c.useApi !== false));
-      if (p.id === 'gemini') html += `<label class="full">${esc(tr('ag.agyPath'))} <small>${esc(tr('ag.agyPath.sub'))}</small><input class="inp" data-prov="gemini" data-key="antigravityPath" value="${esc(c.antigravityPath || '')}" spellcheck="false" placeholder="C:\\...\\agy.exe"></label>`;
+      if (p.id === 'antigravity') html += agyRow(p, c);
       if (p.id === 'claude') {
         const fableOn = !FABLE_IDS.some((id) => hidden.includes(id));
         const has = p.windows.some((w) => FABLE_IDS.includes(w.id));
@@ -517,26 +521,46 @@
           .join('');
         html += `</div>`;
       }
-      html += `<div class="form2">`;
-      const wslEx = `\\\\wsl.localhost\\Ubuntu\\home\\me\\.${p.id === 'claude' ? 'claude' : p.id}`;
-      html += `<label class="full">${esc(tr('ag.extra'))} <small>${esc(tr('ag.extra.sub', { ex: wslEx }))}</small><textarea class="inp" data-prov="${p.id}" data-key="extraPaths" spellcheck="false">${esc(c.extraPaths || '')}</textarea></label>`;
-      html += `<div class="hint">${esc(tr('ag.budget'))}</div>`;
-      html += `<label>${esc(tr('ag.b5h'))}<input class="inp num" type="number" min="0" step="100000" data-prov="${p.id}" data-key="budget5h" value="${Number(c.budget5h) || 0}"/></label>`;
-      html += `<label>${esc(tr('ag.bwk'))}<input class="inp num" type="number" min="0" step="1000000" data-prov="${p.id}" data-key="budgetWeek" value="${Number(c.budgetWeek) || 0}"/></label>`;
-      html += `<label class="full">${esc(tr('ag.cmd'))} <small>${tr('ag.cmd.sub', { json: esc('{"windows":[{"label","usedPercent","resetsAt"}]}') })}</small><input class="inp" data-prov="${p.id}" data-key="command" value="${esc(c.command || '')}" spellcheck="false" placeholder="${esc(tr('ag.cmd.ph'))}"/></label>`;
-      html += `</div>`;
+      // Antigravity has no logs to read and its limits come only from the CLI
+      if (p.id !== 'antigravity') html += agentForm(p, c);
       const facts = [
-        tr('ag.logFiles', { n: p.logFiles || 0 }),
-        p.limitsAt ? tr('ag.limitsAt', { t: U.relTime(p.limitsAt) }) : null,
+        p.id === 'antigravity' ? null : tr('ag.logFiles', { n: p.logFiles || 0 }),
+        p.limitsAt && p.id !== 'antigravity' ? tr('ag.limitsAt', { t: U.relTime(p.limitsAt) }) : null,
         p.tokens.unpricedWeek ? tr('ag.unpriced', { n: U.fmtNum(p.tokens.unpricedWeek) }) : null,
       ].filter(Boolean);
-      html += `<div class="note muted">${esc(facts.join(' · '))}</div>`;
+      if (facts.length) html += `<div class="note muted">${esc(facts.join(' · '))}</div>`;
       const note = [p.apiError, p.commandError, p.scanError].filter(Boolean).map(I18N.apiError).join(' · ');
       if (note) html += `<div class="note">${esc(note)}</div>`;
       html += `</div>`;
     }
     html += `</div>`;
     return html;
+  }
+
+  /** Where agy.exe is: found on its own, set by hand, or not yet (Windows only). */
+  function agyRow(p, c) {
+    const st = (S.setup || {}).antigravity;
+    if (st && !st.supported) return '';
+    const manual = (c.antigravityPath || '').trim();
+    const path = manual || (st && st.path) || p.exePath || '';
+    const text = manual ? tr('ag.agy.manual', { path }) : path ? tr('ag.agy.found', { path }) : tr('ag.agy.missing');
+    const btns =
+      `<div style="display:flex;flex-direction:column;gap:6px;flex:none"><button class="btn sm" data-act="agy-pick">${esc(tr('ag.agy.browse'))}</button>` +
+      (manual ? `<button class="btn sm" data-act="agy-auto">${esc(tr('ag.agy.auto'))}</button>` : '') +
+      `</div>`;
+    return row(esc(tr('ag.agyPath')), esc(text), btns);
+  }
+
+  /** Extra log folders, token budgets and a custom command (agents with logs). */
+  function agentForm(p, c) {
+    let html = `<div class="form2">`;
+    const wslEx = `\\\\wsl.localhost\\Ubuntu\\home\\me\\.${p.id === 'claude' ? 'claude' : p.id}`;
+    html += `<label class="full">${esc(tr('ag.extra'))} <small>${esc(tr('ag.extra.sub', { ex: wslEx }))}</small><textarea class="inp" data-prov="${p.id}" data-key="extraPaths" spellcheck="false">${esc(c.extraPaths || '')}</textarea></label>`;
+    html += `<div class="hint">${esc(tr('ag.budget'))}</div>`;
+    html += `<label>${esc(tr('ag.b5h'))}<input class="inp num" type="number" min="0" step="100000" data-prov="${p.id}" data-key="budget5h" value="${Number(c.budget5h) || 0}"/></label>`;
+    html += `<label>${esc(tr('ag.bwk'))}<input class="inp num" type="number" min="0" step="1000000" data-prov="${p.id}" data-key="budgetWeek" value="${Number(c.budgetWeek) || 0}"/></label>`;
+    html += `<label class="full">${esc(tr('ag.cmd'))} <small>${tr('ag.cmd.sub', { json: esc('{"windows":[{"label","usedPercent","resetsAt"}]}') })}</small><input class="inp" data-prov="${p.id}" data-key="command" value="${esc(c.command || '')}" spellcheck="false" placeholder="${esc(tr('ag.cmd.ph'))}"/></label>`;
+    return html + `</div>`;
   }
 
   // ---------------------------------------------------------------- alerts & hotkeys
@@ -849,6 +873,24 @@
         } catch (err) {
           toast(tr('toast.connectFail', { e: I18N.apiError(String(err)) }));
         }
+        break;
+      case 'agy-pick':
+        try {
+          const path = await api.antigravityPick();
+          if (path) {
+            await set({ providers: { antigravity: { antigravityPath: path } } });
+            toast(tr('toast.agyPicked'));
+            loadSetup(true);
+            api.refresh();
+          }
+        } catch (err) {
+          toast(tr('toast.agyFail', { e: I18N.apiError(String(err)) }));
+        }
+        break;
+      case 'agy-auto':
+        await set({ providers: { antigravity: { antigravityPath: '' } } });
+        loadSetup(true);
+        api.refresh();
         break;
       case 'win-toggle': {
         const prov = el.dataset.prov;

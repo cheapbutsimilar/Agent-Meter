@@ -5,12 +5,26 @@ open CLI window or Python/Node.js runtime.
 
 ## Setup
 
-1. Install the official Google Antigravity CLI and finish its login/onboarding once.
-2. In AgentMeter → Dashboard → Agents → Gemini, enter the absolute `agy.exe` path
-   under **Antigravity CLI path** (Korean UI: *Antigravity CLI 경로*), and enable
-   **Official usage API** (*공식 사용량 API*).
-3. Clear any old custom quota command. With a native path configured, AgentMeter
-   ignores that command. An empty path selects the legacy Gemini collector.
+Antigravity CLI is its own agent in AgentMeter (Dashboard → Agents → **Antigravity CLI**), next to Gemini CLI.
+
+1. **Nothing to type.** AgentMeter looks for `agy.exe` by itself: first `where agy` (AgentMeter's PATH), then
+   the default install folders: `%LOCALAPPDATA%\agy\bin` (the official install script),
+   `%LOCALAPPDATA%\Antigravity\bin`, `%LOCALAPPDATA%\Antigravity`, `%LOCALAPPDATA%\Programs\agy\bin`,
+   `%LOCALAPPDATA%\Microsoft\WinGet\Links` and `%USERPROFILE%\.local\bin`. The first file with a valid
+   Google LLC signature is used. While nothing is found it looks again every 10 minutes, and at once on a
+   manual refresh.
+2. **Not installed?** Press **Connect** (*원클릭 연결*). A terminal runs the official installer
+   (`irm https://antigravity.google/cli/install.ps1 | iex`) and then `agy`, so you can log in and finish the
+   first-run setup. AgentMeter notices when `~/.gemini/antigravity-cli/cache/onboarding.json` reports the setup
+   as complete and refreshes.
+3. **Somewhere else?** Press **Browse…** (*찾아보기…*) and pick `agy.exe`. A file without a valid Google LLC
+   signature is refused. **Find automatically** (*자동으로 찾기*) goes back to the search.
+
+Keep **Official usage API** (*공식 사용량 API*) on. Antigravity writes no token logs AgentMeter reads, so it
+shows limits but no token counts or costs.
+
+Settings from earlier versions, where the path was entered under Gemini, move to the Antigravity agent on
+their own, and Gemini goes back to showing Gemini CLI.
 
 Collection runs on AgentMeter's usage worker (up to 35 seconds per attempt).
 Successful collections are at least three minutes apart. Failures back off up
@@ -56,8 +70,9 @@ collection flow. No script runtime is used by the new path.
 ## Migrating an existing script installation
 
 Back up the installed executable, `settings.json`, and `usage-cache.json` before
-replacing the app. Change only Gemini's `antigravityPath`, `useApi: true`, and
-`command: ""`. Keep other provider settings intact. Verify live quota collection
-with the new executable before retiring the old bridge folder. The former
+replacing the app. Clear the Gemini `command` the bridge set (`command: ""`) and
+let the Antigravity agent find `agy.exe` (or set its `antigravityPath`). Keep other
+provider settings intact. Verify live quota collection with the new executable
+before retiring the old bridge folder. The former
 script implementation is retained in this branch as migration/reference material;
 it is not invoked by native collection.

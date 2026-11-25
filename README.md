@@ -4,7 +4,7 @@
 
 # AgentMeter
 
-Live usage limits for **Claude Code · Codex · Gemini CLI / Antigravity · Grok**,<br>
+Live usage limits for **Claude Code · Codex · Gemini CLI · Antigravity · Grok**,<br>
 right in your taskbar or on your desktop.
 
 [![Latest release](https://img.shields.io/github/v/release/cheapbutsimilar/agents_usage_monitor?style=flat-square&color=F05C1A&label=release)](https://github.com/cheapbutsimilar/agents_usage_monitor/releases/latest)
@@ -43,7 +43,7 @@ have cost at API prices.
 
 | | |
 | --- | --- |
-| **Official limit %** | Claude 5-hour, weekly and per-model limits (such as Claude Fable), Codex 5-hour and weekly (account-wide), Gemini daily quotas, and Antigravity's Gemini 5-hour and weekly limits (Windows), straight from each service. While an agent is working, limits are re-checked within a minute. |
+| **Official limit %** | Claude 5-hour, weekly and per-model limits (such as Claude Fable), Codex 5-hour and weekly (account-wide), Gemini CLI daily quotas, and Antigravity CLI 5-hour and weekly limits (Windows), straight from each service. Gemini CLI and Antigravity are separate agents, so you can watch both side by side. While an agent is working, limits are re-checked within a minute. |
 | **Run-out forecast** | Works out when a limit will run out from your recent pace, and shows `▲ runs out in 40m at this pace` when that's before the reset. |
 | **Pace mark** | A mark on each bar shows how much of the limit window has passed. If the bar is ahead of the mark, you're going faster than usual. |
 | **API-equivalent cost** | Estimates today's, 7-day and 30-day cost at public API prices, e.g. `$44.48 today · 7d $272 · 30d $1,016`. Costs are shown in USD, with KRW (₩) or both also available. |
@@ -118,8 +118,9 @@ Pick a theme in Dashboard → **Appearance**. Every value stays within safe rang
    signing key before they install.
 3. It installs for your user only, so no admin rights are needed. On first run the dashboard opens, the widget
    appears at the bottom right, and a gauge icon appears in the tray.
-4. If you've logged in to Claude Code, Codex or Gemini CLI before, the limits show up right away. If not, click
-   **Connect** on the dashboard overview.
+4. If you've logged in to Claude Code, Codex, Gemini CLI or Antigravity CLI before, the limits show up right
+   away. If not, click **Connect** on the dashboard overview or under Agents. It installs the CLI if it's missing
+   and opens its login.
 
 When a new version ships, a window shows **what's new** with *Update now / Later*. AgentMeter checks 20 seconds
 after start and every 3 hours. You can also check now, read the patch notes, or switch to silent installs in
@@ -138,7 +139,7 @@ already saved**.
 | **Claude Code** | `~/.claude/projects/**/*.jsonl` | `api.anthropic.com/api/oauth/usage`: 5-hour, weekly and per-model limits (e.g. Fable); plan from `/api/oauth/profile` | `~/.claude/.credentials.json` · macOS Keychain |
 | **Codex CLI** | `~/.codex/sessions/**/rollout-*.jsonl` | `chatgpt.com/backend-api/wham/usage`: account-wide 5-hour and weekly, including other computers and Codex cloud | `~/.codex/auth.json` |
 | **Gemini CLI** | `~/.gemini/tmp/*/chats/session-*.jsonl` | Code Assist `retrieveUserQuota`: daily quota per model | `~/.gemini/oauth_creds.json` |
-| **Antigravity CLI** (Windows) | | 5-hour and weekly Gemini limits from the official `agy.exe` status line, read in the background ([setup](docs/antigravity-native.md)) | Handled by the official CLI; AgentMeter never reads it |
+| **Antigravity CLI** (Windows) | none (no token logs) | 5-hour and weekly limits from the official `agy.exe` status line, read in the background ([details](docs/antigravity-native.md)) | Handled by the official CLI; AgentMeter never reads it |
 | **Grok** | `~/.grok/**/*.jsonl` | No official API: estimated from a token budget, or a [custom command](#custom-command) | |
 
 - Only **new lines** are read. Sessions that were resumed (and copy earlier messages) and duplicate events are
@@ -147,11 +148,13 @@ already saved**.
 - Projects are grouped by the working folder recorded in the logs.
 - `CLAUDE_CONFIG_DIR` and `CODEX_HOME` are respected. For agents running in WSL, add a path such as
   `\\wsl.localhost\Ubuntu\home\<me>\.claude` under Dashboard → Agents → **Extra log folders**.
-- **Antigravity** takes the Gemini slot when you enter the path to the official `agy.exe` in Dashboard → Agents →
-  Gemini → **Antigravity CLI path**. AgentMeter runs only an `agy.exe` with a valid Google LLC signature, in an
-  isolated temporary profile with every tool denied and no prompt sent, and keeps only the quota numbers and plan.
-  It checks at most every 3 minutes and hides readings older than 15 minutes. See
-  [docs/antigravity-native.md](docs/antigravity-native.md).
+- **Antigravity CLI** is its own agent, next to Gemini CLI. AgentMeter finds `agy.exe` by itself (`where agy`,
+  then the default install folders such as `%LOCALAPPDATA%\agy\bin`). If it isn't installed, **Connect** in
+  Dashboard → Agents → Antigravity CLI runs the official installer and opens the first-run login. If it lives
+  somewhere else, pick it with **Browse…**. AgentMeter runs only an `agy.exe` with a valid Google LLC signature,
+  in an isolated temporary profile with every tool denied and no prompt sent, and keeps only the quota numbers and
+  plan. It checks at most every 3 minutes and hides readings older than 15 minutes. Antigravity writes no token
+  logs, so it has limits but no token counts or costs. See [docs/antigravity-native.md](docs/antigravity-native.md).
 - The usage APIs are undocumented internal endpoints and may change. If they fail, log-based tracking keeps
   working, and AgentMeter backs off when a server answers *too many requests* (429).
 
@@ -264,7 +267,7 @@ repository folder.
 ```
 crates/core/       collectors and logic (no OS dependencies, unit-tested)
 crates/antigravity/  native Windows Antigravity quota collection (ConPTY, signature check, isolated profile)
-  usage/           Claude · Codex · Gemini · Grok collectors, forecasts, the usage ledger
+  usage/           Claude · Codex · Gemini · Antigravity · Grok collectors, forecasts, the usage ledger
   pricing.rs       API prices per model      settings.rs  settings schema, validation, migrations
 src-tauri/         windows, multi-monitor, taskbar docking, shortcuts, tray gauge, notifications, updates
 ui/widget/         the widget window
@@ -287,7 +290,7 @@ See [docs/HANDOFF.md](docs/HANDOFF.md) for building another app on the same desi
 ## Notes
 
 - **Costs are estimates** at public API prices. They're not your subscription price or your bill.
-- Claude, Codex (OpenAI), Gemini (Google) and Grok (xAI) names and logos are trademarks of their owners. AgentMeter
+- Claude, Codex (OpenAI), Gemini and Antigravity (Google) and Grok (xAI) names and logos are trademarks of their owners. AgentMeter
   is an independent project, not affiliated with any of them. Logo SVGs come from
   [@lobehub/icons](https://github.com/lobehub/lobe-icons) (MIT).
 - Design: base `#2B2B2B`, key color `#F05C1A`. Bars are light gray normally, orange from the first threshold and

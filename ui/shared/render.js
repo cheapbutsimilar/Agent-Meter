@@ -90,7 +90,8 @@
         }
         html += `</div>`;
       }
-      if (o.tokens || o.cost) {
+      // Antigravity writes no token logs, so it has no token or cost figures
+      if ((o.tokens || o.cost) && p.id !== 'antigravity') {
         html += `<div class="ex">`;
         if (o.tokens) html += `<span>${U.fmtNum(p.tokens.today)}</span>`;
         if (o.cost) html += `<span>${U.fmtMoney(p.tokens.costToday)}</span>`;
@@ -168,8 +169,9 @@
       }
       if (!ws.length) html += `<div class="meta"><span>${esc(tr('w.noLimits'))}</span></div>`;
       const stats = [];
-      if (o.tokens) stats.push(tr('w.today', { n: U.fmtNum(p.tokens.today) }));
-      if (o.cost) stats.push(`<b>${U.fmtMoney(p.tokens.costToday)}</b> <span title="${esc(tr('w.costTitle'))}">${esc(tr('w.cost'))}</span>`);
+      const counted = p.id !== 'antigravity';
+      if (o.tokens && counted) stats.push(tr('w.today', { n: U.fmtNum(p.tokens.today) }));
+      if (o.cost && counted) stats.push(`<b>${U.fmtMoney(p.tokens.costToday)}</b> <span title="${esc(tr('w.costTitle'))}">${esc(tr('w.cost'))}</span>`);
       if (stats.length) html += `<div class="st">${stats.join('<i></i>')}</div>`;
       html += `</section>`;
     }

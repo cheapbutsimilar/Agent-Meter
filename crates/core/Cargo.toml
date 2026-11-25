@@ -1,6 +1,6 @@
 [package]
 name = "agentmeter-core"
-description = "Usage collectors (Claude, Codex, Gemini, Grok) for AgentMeter"
+description = "Usage collectors (Claude, Codex, Gemini, Antigravity, Grok) for AgentMeter"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

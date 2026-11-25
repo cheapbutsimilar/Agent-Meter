@@ -11,7 +11,8 @@
 
 ## 다음 버전
 
-- Antigravity CLI의 Gemini 5시간 · 주간 한도를 볼 수 있어요 (Windows). 에이전트 → Gemini → 'Antigravity CLI 경로'에 공식 agy.exe 경로를 넣으면 백그라운드에서 조회해요 (기여: KB-FW)
+- Antigravity CLI의 5시간 · 주간 한도를 볼 수 있어요 (Windows). Gemini CLI와 따로 보이는 독립 에이전트라 둘 다 쓰면 나란히 볼 수 있어요 (기여: KB-FW)
+- agy.exe는 알아서 찾아요. 없으면 에이전트 → Antigravity CLI의 '원클릭 연결'로 설치와 로그인을 하고, 다른 곳에 있으면 '찾아보기'로 고르면 돼요
 
 ## v0.2.25 · 2026-11-25
 

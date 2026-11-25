@@ -4,7 +4,7 @@
 
 # AgentMeter
 
-**Claude Code · Codex · Gemini CLI / Antigravity · Grok** 의 한도와 사용량을<br>
+**Claude Code · Codex · Gemini CLI · Antigravity · Grok** 의 한도와 사용량을<br>
 작업표시줄과 바탕화면에서 바로 보는 데스크톱 위젯
 
 [![최신 릴리스](https://img.shields.io/github/v/release/cheapbutsimilar/agents_usage_monitor?style=flat-square&color=F05C1A&label=release)](https://github.com/cheapbutsimilar/agents_usage_monitor/releases/latest)
@@ -33,7 +33,7 @@ AgentMeter는 각 서비스의 공식 한도 %와 내 컴퓨터의 로그를 모
 
 | | |
 | --- | --- |
-| **공식 한도 %** | Claude 5시간 · 주간 · 모델별 한도(예: Fable), Codex 5시간 · 주간(계정 전체), Gemini 일일 할당량, Antigravity의 Gemini 5시간 · 주간 한도(Windows)를 각 서비스에서 그대로 가져옵니다. 에이전트를 쓰는 중이면 1분 안에 다시 확인합니다. |
+| **공식 한도 %** | Claude 5시간 · 주간 · 모델별 한도(예: Fable), Codex 5시간 · 주간(계정 전체), Gemini CLI 일일 할당량, Antigravity CLI 5시간 · 주간 한도(Windows)를 각 서비스에서 그대로 가져옵니다. Gemini CLI와 Antigravity는 별도 에이전트라 둘 다 쓰면 나란히 볼 수 있습니다. 에이전트를 쓰는 중이면 1분 안에 다시 확인합니다. |
 | **소진 예측** | 최근 사용 속도로 한도가 바닥나는 시각을 계산합니다. 리셋 전에 바닥날 것 같으면 `▲ 지금 속도면 40분 후 소진` 으로 표시합니다. |
 | **페이스 눈금** | 막대 위 눈금이 한도 기간이 얼마나 지났는지 보여줍니다. 막대가 눈금보다 앞서 있으면 평소보다 빠른 것입니다. |
 | **API 환산 비용** | 모델별 공개 API 가격으로 오늘 · 7일 · 30일 비용을 추정합니다. 달러, 원(₩), 둘 다 중에서 고를 수 있고 환율은 자동으로 갱신합니다. |
@@ -102,7 +102,7 @@ AgentMeter는 각 서비스의 공식 한도 %와 내 컴퓨터의 로그를 모
 1. [**최신 릴리스**](https://github.com/cheapbutsimilar/agents_usage_monitor/releases/latest)에서 `AgentMeter_<버전>_x64-setup.exe` 를 내려받아 실행합니다.
 2. "Windows의 PC 보호" 창이 뜨면 **추가 정보 → 실행**을 누릅니다. 코드 서명 인증서가 없는 개인 프로젝트라서 뜨는 경고입니다. 업데이트 파일은 별도의 서명으로 검증합니다.
 3. 관리자 권한 없이 내 계정에만 설치됩니다. 처음 실행하면 대시보드가 열리고, 화면 오른쪽 아래에 위젯이, 트레이에 게이지 아이콘이 생깁니다.
-4. Claude Code · Codex · Gemini CLI 에 한 번이라도 로그인돼 있으면 바로 한도가 보입니다. 아니라면 대시보드 개요의 **원클릭 연결**을 누르세요.
+4. Claude Code · Codex · Gemini CLI · Antigravity CLI 에 한 번이라도 로그인돼 있으면 바로 한도가 보입니다. 아니라면 대시보드 개요나 에이전트 페이지의 **원클릭 연결**을 누르세요. CLI가 없으면 설치하고 로그인 화면까지 열어 줍니다.
 
 새 버전이 나오면 알림과 함께 **이번 업데이트 내용과 "지금 업데이트 / 나중에"** 를 묻는 창이 뜹니다. 시작 20초 뒤와 3시간마다 확인합니다.
 대시보드 → 일반 → 업데이트에서 지금 확인하거나, **패치노트**를 보거나, 묻지 않고 바로 설치하도록 바꿀 수 있습니다. 전체 변경 내역은 [CHANGELOG.md](CHANGELOG.md)에 있습니다.
@@ -119,16 +119,18 @@ AgentMeter는 서버가 없습니다. 모든 데이터는 **내 컴퓨터의 로
 | **Claude Code** | `~/.claude/projects/**/*.jsonl` | `api.anthropic.com/api/oauth/usage` 5시간 · 주간 · 모델별(Fable 등), 요금제는 `/api/oauth/profile` | `~/.claude/.credentials.json` · macOS 키체인 |
 | **Codex CLI** | `~/.codex/sessions/**/rollout-*.jsonl` | `chatgpt.com/backend-api/wham/usage` 계정 전체 5시간 · 주간 (다른 PC · 클라우드 사용 포함) | `~/.codex/auth.json` |
 | **Gemini CLI** | `~/.gemini/tmp/*/chats/session-*.jsonl` | Code Assist `retrieveUserQuota` 모델별 일일 할당량 | `~/.gemini/oauth_creds.json` |
-| **Antigravity CLI** (Windows) | | 공식 `agy.exe` 상태 표시줄의 Gemini 5시간 · 주간 한도를 백그라운드에서 조회 ([설정 방법](docs/antigravity-native.md)) | 공식 CLI가 직접 처리, AgentMeter는 읽지 않음 |
+| **Antigravity CLI** (Windows) | 없음 (토큰 로그 없음) | 공식 `agy.exe` 상태 표시줄의 5시간 · 주간 한도를 백그라운드에서 조회 ([자세히](docs/antigravity-native.md)) | 공식 CLI가 직접 처리, AgentMeter는 읽지 않음 |
 | **Grok** | `~/.grok/**/*.jsonl` | 공식 API 없음 → 토큰 예산으로 추정 또는 [사용자 명령어](#사용자-명령어) | |
 
 - 로그는 **새로 추가된 줄만** 읽고, 재개한 세션이 복사한 기록과 중복 이벤트는 걸러냅니다.
 - 토큰 수는 캐시 읽기를 10%로 환산한 값입니다 (입력 + 출력 + 캐시 쓰기 + 캐시 읽기 × 0.1).
 - 프로젝트는 로그에 남은 작업 폴더 이름으로 묶습니다.
 - `CLAUDE_CONFIG_DIR`, `CODEX_HOME` 을 따르고, WSL에서 쓴다면 대시보드 → 에이전트 → **추가 로그 폴더**에 `\\wsl.localhost\Ubuntu\home\<me>\.claude` 처럼 넣으면 됩니다.
-- **Antigravity**는 대시보드 → 에이전트 → Gemini → **Antigravity CLI 경로**에 공식 `agy.exe` 경로를 넣으면 Gemini 자리에 표시됩니다.
+- **Antigravity CLI**는 Gemini CLI와 별개인 독립 에이전트입니다. `agy.exe`는 직접 찾습니다 (`where agy`, 그다음 `%LOCALAPPDATA%\agy\bin` 같은 기본 설치 폴더).
+  설치돼 있지 않으면 대시보드 → 에이전트 → Antigravity CLI의 **원클릭 연결**이 공식 설치 프로그램을 실행하고 첫 실행 로그인까지 열어 줍니다. 다른 곳에 있다면 **찾아보기…**로 고르면 됩니다.
   Google LLC 서명이 유효한 `agy.exe`만 실행하고, 격리된 임시 프로필에서 모든 도구를 막은 채 프롬프트 없이 띄워 한도 숫자와 요금제만 남깁니다.
-  최소 3분 간격으로 조회하고 15분이 지난 값은 숨깁니다. 자세한 내용은 [docs/antigravity-native.md](docs/antigravity-native.md)를 보세요.
+  최소 3분 간격으로 조회하고 15분이 지난 값은 숨깁니다. Antigravity는 토큰 로그를 남기지 않아서 한도만 보이고 토큰 · 비용은 없습니다.
+  자세한 내용은 [docs/antigravity-native.md](docs/antigravity-native.md)를 보세요.
 - 사용량 API는 공개 문서가 없는 내부 API라서 바뀔 수 있습니다. 실패해도 로그 기반 집계는 계속 동작하고, 요청이 많다는 응답(429)을 받으면 간격을 늘립니다.
 
 ### 개인정보
@@ -226,7 +228,7 @@ cd agents_usage_monitor && cargo run --release -p agentmeter
 ```
 crates/core/       수집 로직 (OS 의존 없음, 단위 테스트)
 crates/antigravity/  Windows용 Antigravity 한도 수집 (ConPTY, 서명 확인, 격리된 프로필)
-  usage/           Claude · Codex · Gemini · Grok 수집기, 예측, 사용량 장부
+  usage/           Claude · Codex · Gemini · Antigravity · Grok 수집기, 예측, 사용량 장부
   pricing.rs       모델별 API 가격      settings.rs  설정 스키마 · 검증 · 마이그레이션
 src-tauri/         창 배치 · 멀티 모니터 · 작업표시줄 고정 · 단축키 · 트레이 게이지 · 알림 · 자동 업데이트
 ui/widget/         위젯 창
@@ -249,7 +251,7 @@ docs/screenshots/  README 이미지. demo-gif.js: 실제 위젯 UI를 렌더링�
 ## 고지
 
 - **비용은 추정치입니다.** 공개 API 가격표로 계산하며 실제 구독 요금이나 청구 금액과 다릅니다.
-- Claude, Codex(OpenAI), Gemini, Grok(xAI)의 이름과 로고는 각 회사의 상표입니다. 이 프로젝트는 어느 회사와도 관련 없는 비공식 도구입니다.
+- Claude, Codex(OpenAI), Gemini · Antigravity(Google), Grok(xAI)의 이름과 로고는 각 회사의 상표입니다. 이 프로젝트는 어느 회사와도 관련 없는 비공식 도구입니다.
   로고 SVG는 [@lobehub/icons](https://github.com/lobehub/lobe-icons)(MIT)에서 가져왔습니다.
 - 디자인: 베이스 `#2B2B2B`, 키 컬러 `#F05C1A`. 막대는 평소 밝은 회색이고, 첫 번째 임계값부터 주황, 두 번째부터 빨강으로 바뀌어 색만으로 상태를 구분하지 않도록 아이콘을 함께 씁니다.
 

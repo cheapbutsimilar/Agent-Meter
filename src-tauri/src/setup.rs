@@ -12,7 +12,15 @@ struct Agent {
     id: &'static str,
     name: &'static str,
     exe: &'static str,
+    /// npm package; empty when the agent only ships an official installer.
     npm: &'static str,
+    /// Official Windows installer (PowerShell) and the folder it installs into, used when
+    /// there is no npm package or no Node.js. Empty: Node.js is required.
+    official_win: &'static str,
+    official_dir_win: &'static str,
+    /// Same for macOS/Linux (bash).
+    official_sh: &'static str,
+    official_dir_sh: &'static str,
     /// What to run once the CLI exists.
     login: &'static str,
     hint: &'static str,
@@ -37,7 +45,7 @@ const KO: Msg = Msg {
     installing: "가 설치돼 있지 않아서 먼저 설치해요.",
     failed: "설치에 실패했어요. 위 메시지를 확인하세요.",
     done: "로그인이 끝나면 AgentMeter가 알아서 감지해요. 끝나면 이 창은 닫아도 돼요.",
-    official: "Node.js 없이 공식 설치 프로그램으로 설치해요...",
+    official: "공식 설치 프로그램으로 설치해요...",
     need_node:
         "Node.js가 필요해요. 열리는 페이지에서 LTS 버전을 설치한 뒤 [원클릭 연결]을 다시 누르세요.",
     need_node_sh:
@@ -50,17 +58,21 @@ const EN: Msg = Msg {
     installing: " isn't installed, installing it first.",
     failed: "Installation failed. Check the messages above.",
     done: "AgentMeter notices when the login is done. You can close this window afterwards.",
-    official: "Installing with the official installer (no Node.js needed)...",
+    official: "Installing with the official installer...",
     need_node: "Node.js is needed. Install the LTS version from the page that opens, then press [Connect] again.",
     need_node_sh: "Node.js is needed. Install the LTS version from https://nodejs.org, then press [Connect] again.",
 };
 
-const AGENTS: [Agent; 3] = [
+const AGENTS: [Agent; 4] = [
     Agent {
         id: "claude",
         name: "Claude Code",
         exe: "claude",
         npm: "@anthropic-ai/claude-code",
+        official_win: "irm https://claude.ai/install.ps1 | iex",
+        official_dir_win: "%USERPROFILE%\\.local\\bin",
+        official_sh: "curl -fsSL https://claude.ai/install.sh | bash",
+        official_dir_sh: "$HOME/.local/bin",
         login: "claude",
         hint: "안내에 따라 Claude 계정으로 로그인하세요. 로그인 화면이 안 나오면 /login 을 입력하세요.",
         hint_en: "Log in with your Claude account. If no login screen appears, type /login.",
@@ -70,6 +82,10 @@ const AGENTS: [Agent; 3] = [
         name: "Codex",
         exe: "codex",
         npm: "@openai/codex",
+        official_win: "",
+        official_dir_win: "",
+        official_sh: "",
+        official_dir_sh: "",
         login: "codex login",
         hint: "브라우저가 열리면 ChatGPT 계정으로 로그인하세요.",
         hint_en: "Log in with your ChatGPT account in the browser that opens.",
@@ -79,9 +95,27 @@ const AGENTS: [Agent; 3] = [
         name: "Gemini CLI",
         exe: "gemini",
         npm: "@google/gemini-cli",
+        official_win: "",
+        official_dir_win: "",
+        official_sh: "",
+        official_dir_sh: "",
         login: "gemini",
         hint: "인증 방법에서 'Login with Google'을 고르고 브라우저에서 로그인하세요.",
         hint_en: "Choose 'Login with Google' and log in in the browser.",
+    },
+    // Windows only: AgentMeter reads its limits through Windows ConPTY.
+    Agent {
+        id: "antigravity",
+        name: "Antigravity CLI",
+        exe: "agy",
+        npm: "",
+        official_win: "irm https://antigravity.google/cli/install.ps1 | iex",
+        official_dir_win: "%LOCALAPPDATA%\\agy\\bin",
+        official_sh: "",
+        official_dir_sh: "",
+        login: "agy",
+        hint: "Google 계정으로 로그인하고 첫 실행 설정을 끝내세요. 끝나면 /quit 으로 나가도 돼요.",
+        hint_en: "Log in with your Google account and finish the first-run setup. Then you can leave with /quit.",
     },
 ];
 
@@ -120,11 +154,16 @@ fn login_files(id: &str) -> Vec<PathBuf> {
             .unwrap_or(h)
             .join(".gemini")
             .join("oauth_creds.json")],
+        // the first-run setup (login included) writes this when it finishes
+        "antigravity" => vec![h.join(".gemini/antigravity-cli/cache/onboarding.json")],
         _ => vec![],
     }
 }
 
 fn logged_in(id: &str) -> bool {
+    if id == "antigravity" {
+        return agentmeter_antigravity::onboarded(&home());
+    }
     if login_files(id).iter().any(|p| p.is_file()) {
         return true;
     }
@@ -177,10 +216,39 @@ fn find_exe(name: &str) -> Option<PathBuf> {
     })
 }
 
-/// `{ claude: { cli, login, supported }, … }` for the dashboard.
-pub fn status() -> Value {
+/// The official, signed agy.exe: the configured path if it checks out, else one found on its
+/// own (`where agy`, then the default install folders).
+pub fn antigravity_exe(configured: &str) -> Option<PathBuf> {
+    let configured = configured.trim();
+    if !configured.is_empty() {
+        let p = PathBuf::from(configured);
+        return agentmeter_antigravity::verify(&p).is_ok().then_some(p);
+    }
+    agentmeter_antigravity::discover(&home())
+}
+
+/// `{ claude: { cli, login, supported }, …, antigravity: { …, path } }` for the dashboard.
+/// Looking for agy.exe runs `where`, so call this off the main thread.
+pub fn status(antigravity_path: &str) -> Value {
     let mut out = serde_json::Map::new();
     for a in &AGENTS {
+        if a.id == "antigravity" {
+            let exe = if cfg!(windows) {
+                antigravity_exe(antigravity_path)
+            } else {
+                None
+            };
+            out.insert(
+                a.id.into(),
+                json!({
+                    "supported": cfg!(windows),
+                    "cli": exe.is_some(),
+                    "login": logged_in(a.id),
+                    "path": exe.map(|p| p.to_string_lossy().into_owned()),
+                }),
+            );
+            continue;
+        }
         out.insert(
             a.id.into(),
             json!({ "supported": true, "cli": find_exe(a.exe).is_some(), "login": logged_in(a.id) }),
@@ -208,14 +276,14 @@ fn texts(a: &Agent, en: bool) -> (&'static Msg, &'static str) {
 
 fn cmd_script(a: &Agent, en: bool) -> String {
     let (m, hint) = texts(a, en);
-    // Claude has an official installer that needs no Node.js.
-    let no_node = if a.id == "claude" {
+    // Claude and Antigravity have official installers that need no Node.js.
+    let no_node = if !a.official_win.is_empty() {
         format!(
             "echo {}\r\n\
-             powershell -NoProfile -ExecutionPolicy Bypass -Command \"irm https://claude.ai/install.ps1 | iex\"\r\n\
-             set \"PATH=%USERPROFILE%\\.local\\bin;%PATH%\"\r\n\
+             powershell -NoProfile -ExecutionPolicy Bypass -Command \"{}\"\r\n\
+             set \"PATH={};%PATH%\"\r\n\
              goto check\r\n",
-            m.official
+            m.official, a.official_win, a.official_dir_win
         )
     } else {
         format!(
@@ -231,9 +299,11 @@ fn cmd_script(a: &Agent, en: bool) -> String {
          title AgentMeter - {name} {title}\r\n\
          echo [AgentMeter] {name} {connecting}\r\n\
          echo.\r\n\
+         {official_path}\
          where {exe} >nul 2>nul\r\n\
          if not errorlevel 1 goto login\r\n\
          echo {name}{installing}\r\n\
+         {npm_check}\
          where npm >nul 2>nul\r\n\
          if errorlevel 1 goto nonode\r\n\
          echo npm install -g {npm}\r\n\
@@ -258,6 +328,18 @@ fn cmd_script(a: &Agent, en: bool) -> String {
         name = a.name,
         exe = a.exe,
         npm = a.npm,
+        // no npm package: go straight to the official installer
+        // the official installer may not have added its folder to PATH
+        official_path = if a.official_dir_win.is_empty() {
+            String::new()
+        } else {
+            format!("set \"PATH={};%PATH%\"\r\n", a.official_dir_win)
+        },
+        npm_check = if a.npm.is_empty() {
+            "goto nonode\r\n"
+        } else {
+            ""
+        },
         login = a.login,
         title = m.title,
         connecting = m.connecting,
@@ -270,10 +352,10 @@ fn cmd_script(a: &Agent, en: bool) -> String {
 
 fn sh_script(a: &Agent, en: bool) -> String {
     let (m, hint) = texts(a, en);
-    let no_node = if a.id == "claude" {
+    let no_node = if !a.official_sh.is_empty() {
         format!(
-            "  echo \"{}\"\n  curl -fsSL https://claude.ai/install.sh | bash\n  export PATH=\"$HOME/.local/bin:$PATH\"\n",
-            m.official
+            "  echo \"{}\"\n  {}\n  export PATH=\"{}:$PATH\"\n",
+            m.official, a.official_sh, a.official_dir_sh
         )
     } else {
         format!("  echo \"{}\"\n  exit 0\n", m.need_node_sh)
@@ -284,7 +366,7 @@ fn sh_script(a: &Agent, en: bool) -> String {
          echo \"[AgentMeter] {name} {connecting}\"\n\
          if ! command -v {exe} >/dev/null; then\n\
          \x20 echo \"{name}{installing}\"\n\
-         \x20 if command -v npm >/dev/null; then npm install -g {npm}; else\n{no_node}  fi\n\
+         \x20 if {npm_ok}; then npm install -g {npm}; else\n{no_node}  fi\n\
          fi\n\
          if ! command -v {exe} >/dev/null; then echo \"{failed}\"; exit 1; fi\n\
          echo\n\
@@ -295,6 +377,11 @@ fn sh_script(a: &Agent, en: bool) -> String {
         name = a.name,
         exe = a.exe,
         npm = a.npm,
+        npm_ok = if a.npm.is_empty() {
+            "false"
+        } else {
+            "command -v npm >/dev/null"
+        },
         login = a.login,
         connecting = m.connecting,
         installing = m.installing,
@@ -344,6 +431,9 @@ fn open_terminal(path: &Path) -> std::io::Result<()> {
 /// Start the connect flow for one agent; returns once the terminal is open.
 pub fn connect(app: &AppHandle, id: &str) -> Result<(), String> {
     let a = agent(id).ok_or("이 에이전트는 로그인 연결이 없어요")?;
+    if a.id == "antigravity" && !cfg!(windows) {
+        return Err("Antigravity 수집은 현재 Windows에서만 지원합니다".into());
+    }
     let dir = app.state::<AppState>().data_dir.join("setup");
     std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
     let (body, ext) = script(a, crate::i18n::en(app));
@@ -374,7 +464,7 @@ fn watch(app: AppHandle, id: &'static str) {
                     .send_usage(UsageCmd::Refresh { force: true });
                 let _ = app.emit(
                     "event",
-                    json!({ "type": "setup", "agent": id, "status": status() }),
+                    json!({ "type": "setup", "agent": id, "status": status(&app.state::<AppState>().settings().provider("antigravity").antigravity_path) }),
                 );
                 return;
             }

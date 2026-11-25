@@ -98,6 +98,19 @@
         history: history(480_000, 3.1),
       },
       {
+        id: 'antigravity', name: 'Antigravity', enabled: true, plan: 'Pro', source: 'api', detected: true, logFiles: 0, limitsAt: now - 2 * MIN,
+        exePath: 'C:\\Users\\me\\AppData\\Local\\agy\\bin\\agy.exe',
+        windows: [
+          win('5h', '5H', 46, 3 * HOUR + 12 * MIN, 300, { ratePerHour: 6.1 }),
+          win('7d', 'WK', 29, 5 * DAY + 7 * HOUR, 10080, { ratePerHour: 0.5 }),
+        ],
+        tokens: {
+          today: 0, last5h: 0, week: 0, costToday: 0, cost5h: 0, costWeek: 0, cost30d: 0, unpricedWeek: 0,
+          lastEventAt: null, models: [], projects: [], heatmap: heatmap(0),
+        },
+        history: history(0, 0),
+      },
+      {
         id: 'grok', name: 'Grok', enabled: true, plan: null, source: 'estimate', detected: true, logFiles: 2, limitsAt: null,
         windows: [win('5h', '5H', 13, null, 300, { source: 'estimate' })],
         tokens: {
@@ -128,6 +141,7 @@
       claude: provider({}),
       codex: provider({}),
       gemini: provider({}),
+      antigravity: provider({ antigravityPath: '' }),
       grok: provider({ useApi: false, budget5h: 1_000_000 }),
     },
   };
@@ -197,11 +211,13 @@
       claude: { supported: true, cli: true, login: true },
       codex: { supported: true, cli: true, login: true },
       gemini: { supported: true, cli: false, login: false },
+      antigravity: { supported: true, cli: true, login: true, path: 'C:\\Users\\me\\AppData\\Local\\agy\\bin\\agy.exe' },
       grok: { supported: false },
     }),
     setupConnect: async (agent) => {
       setTimeout(() => emit('event', { type: 'setup', agent, status: { claude: { supported: true, cli: true, login: true }, codex: { supported: true, cli: true, login: true }, gemini: { supported: true, cli: true, login: true }, grok: { supported: false } } }), 1500);
     },
+    antigravityPick: async () => 'C:\\Users\\me\\AppData\\Local\\agy\\bin\\agy.exe',
     updateInstall: () => emit('event', { type: 'update', update: (update = { ...NEW_UPDATE, state: 'downloading', progress: 30 }) }),
     refresh: async () => {
       usage.at = Date.now();

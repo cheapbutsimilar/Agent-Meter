@@ -115,6 +115,9 @@ pub struct ProviderState {
     pub project_at: Option<i64>,
     /// Recent `(ts, usedPercent)` observations per window id, for the burn rate.
     pub samples: BTreeMap<String, Vec<(i64, f64)>>,
+    /// The agent's executable in use, when we run it (Antigravity's agy.exe).
+    #[serde(default)]
+    pub exe_path: Option<String>,
 }
 
 impl ProviderState {
@@ -285,6 +288,8 @@ pub struct Ctx<'a> {
     pub lookback_days: i64,
     /// Set by a provider when the server asked us to slow down (HTTP 429).
     pub backoff: bool,
+    /// A manual refresh (or a finished one-click connect): look again right away.
+    pub force: bool,
 }
 
 pub trait Provider: Send {

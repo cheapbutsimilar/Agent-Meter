@@ -12,10 +12,11 @@
     claude: { id: 'claude', name: 'Claude', product: 'Claude Code', color: 'var(--c-claude)' },
     codex: { id: 'codex', name: 'Codex', product: 'Codex CLI', color: 'var(--c-codex)' },
     gemini: { id: 'gemini', name: 'Gemini', product: 'Gemini CLI', color: 'var(--c-gemini)' },
+    antigravity: { id: 'antigravity', name: 'Antigravity', product: 'Antigravity CLI', color: 'var(--c-antigravity)' },
     grok: { id: 'grok', name: 'Grok', product: 'Grok', color: 'var(--c-grok)' },
   };
   /** Stacking order for charts (adjacent colors validated for color-vision deficiency). */
-  const STACK_ORDER = ['gemini', 'claude', 'grok', 'codex'];
+  const STACK_ORDER = ['gemini', 'claude', 'grok', 'codex', 'antigravity'];
 
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -195,8 +196,6 @@
   function windowName(w) {
     const m = w.windowMinutes;
     if (w.id === '5h') return tr('win.5h');
-    if (w.id === 'gemini-5h') return tr('win.ag5h');
-    if (w.id === 'gemini-weekly') return tr('win.agWk');
     if (['7d', '7d_opus', '7d_sonnet', 'pro', 'flash', 'day'].includes(w.id)) return tr(`win.${w.id}`);
     if (/^7d_/.test(w.id)) return tr('win.model7d', { label: w.label });
     if (/^5h_/.test(w.id)) return tr('win.model5h', { label: w.label.replace(/ 5H$/, '') });

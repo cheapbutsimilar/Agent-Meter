@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::BTreeMap;
 
-pub const PROVIDER_IDS: [&str; 4] = ["claude", "codex", "gemini", "grok"];
+pub const PROVIDER_IDS: [&str; 5] = ["claude", "codex", "gemini", "antigravity", "grok"];
 pub const SETTINGS_VERSION: u32 = 3;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -25,7 +25,8 @@ pub struct ProviderConfig {
     pub budget_week: f64,
     /// A command printing `{ "windows": [{ "label", "usedPercent", "resetsAt" }] }`.
     pub command: String,
-    /// Official agy.exe absolute path. Empty selects the legacy Gemini collector.
+    /// Antigravity only: the official agy.exe's absolute path. Empty finds it on its own
+    /// (`where agy`, then the default install folders).
     pub antigravity_path: String,
 }
 
@@ -295,6 +296,20 @@ impl Settings {
         for id in PROVIDER_IDS {
             s.providers.entry(id.to_string()).or_default();
         }
+        // Antigravity used to live in Gemini's settings: move its agy.exe path over, so Gemini
+        // goes back to Gemini CLI and Antigravity shows up as its own agent.
+        let moved = s
+            .providers
+            .get_mut("gemini")
+            .map(|g| std::mem::take(&mut g.antigravity_path))
+            .filter(|p| !p.trim().is_empty());
+        if let Some(path) = moved {
+            if let Some(a) = s.providers.get_mut("antigravity") {
+                if a.antigravity_path.trim().is_empty() {
+                    a.antigravity_path = path;
+                }
+            }
+        }
         if s.v < 3 {
             // v3: Codex limits come from its usage API by default (multi-PC use)
             if let Some(c) = s.providers.get_mut("codex") {
@@ -428,6 +443,7 @@ mod tests {
         assert!(!s.provider("claude").enabled);
         assert!(s.provider("claude").use_api, "missing fields keep defaults");
         assert!(s.providers.contains_key("grok"));
+        assert!(s.providers.contains_key("antigravity"));
 
         let m = s.merged(&json!({
             "providers": { "grok": { "budget5h": 1000, "hiddenWindows": ["7d"] } },
@@ -465,5 +481,18 @@ mod tests {
         let bad = s.merged(&json!({ "mode": "sideways", "valueMode": "x" }));
         assert_eq!(bad.mode, "floating");
         assert_eq!(bad.value_mode, "remaining");
+    }
+
+    #[test]
+    fn antigravity_path_moves_out_of_gemini() {
+        let s = Settings::from_value(Some(json!({
+            "providers": { "gemini": { "antigravityPath": "C:\\agy\\agy.exe", "command": "" } }
+        })));
+        assert_eq!(s.provider("gemini").antigravity_path, "");
+        assert_eq!(
+            s.provider("antigravity").antigravity_path,
+            "C:\\agy\\agy.exe"
+        );
+        assert!(s.provider("antigravity").enabled);
     }
 }

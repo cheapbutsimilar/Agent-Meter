@@ -53,7 +53,7 @@ fn pipe() -> Result<(Handle, Handle), &'static str> {
 
 /// Authenticode must validate offline AND identify Google LLC. The configured
 /// path alone, filename, or an arbitrary hash is not proof of the publisher.
-fn verify_google(exe: &Path) -> Result<(), &'static str> {
+pub(crate) fn verify_google(exe: &Path) -> Result<(), &'static str> {
     let name = wide(exe);
     unsafe {
         let mut file: WINTRUST_FILE_INFO = zeroed();

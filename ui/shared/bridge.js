@@ -21,6 +21,7 @@
     changelog: () => invoke('changelog'),
     setupStatus: () => invoke('setup_status'),
     setupConnect: (agent) => invoke('setup_connect', { agent }),
+    antigravityPick: () => invoke('antigravity_pick'),
     openDashboard: (page) => invoke('open_dashboard', { page: page || null }),
     closeWindow: () => invoke('close_window'),
     minimizeWindow: () => invoke('minimize_window'),

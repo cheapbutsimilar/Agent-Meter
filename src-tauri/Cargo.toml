@@ -1,6 +1,6 @@
 [package]
 name = "agentmeter"
-description = "AgentMeter — usage monitor for Claude Code, Codex, Gemini CLI and Grok"
+description = "AgentMeter — usage monitor for Claude Code, Codex, Gemini CLI, Antigravity and Grok"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -28,6 +28,7 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 ureq = { version = "2", default-features = false, features = ["tls", "native-certs", "gzip"] }
 sysinfo = { version = "0.33", default-features = false, features = ["system"] }
+tauri-plugin-dialog = "2"
 
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Graphics_Gdi", "Win32_UI_Accessibility", "Win32_UI_WindowsAndMessaging"] }

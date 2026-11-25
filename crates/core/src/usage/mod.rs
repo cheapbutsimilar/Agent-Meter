@@ -1,5 +1,6 @@
 //! Usage collection: providers → ledger → snapshot.
 
+pub mod antigravity;
 pub mod claude;
 pub mod codex;
 pub mod common;
@@ -34,6 +35,9 @@ pub struct ProviderSnapshot {
     pub scan_error: Option<String>,
     pub command_error: Option<String>,
     pub log_files: usize,
+    /// The executable AgentMeter runs for this agent (Antigravity's agy.exe), when found.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub exe_path: Option<String>,
     pub limits_at: Option<i64>,
     /// When the agent's stored login lapses (the agent renews it whenever it runs).
     pub auth_expires_at: Option<i64>,
@@ -100,7 +104,8 @@ impl UsageService {
         let providers: Vec<Box<dyn Provider>> = vec![
             Box::new(claude::Claude::default()),
             Box::new(codex::Codex::default()),
-            Box::new(gemini::Gemini::default()),
+            Box::new(gemini::Gemini),
+            Box::new(antigravity::Antigravity::default()),
             Box::new(grok::Grok),
         ];
         let states = providers
@@ -192,6 +197,7 @@ impl UsageService {
                 http: self.http.as_ref(),
                 lookback_days: self.lookback_days,
                 backoff: false,
+                force: force_api,
             };
             let files = p.scan(&mut ctx, now);
             ctx.state.log_files = files;
@@ -217,8 +223,7 @@ impl UsageService {
                     self.api_due.insert(id.clone(), now + api_every * mul);
                 }
             }
-            if !(id == "gemini" && !cfg.antigravity_path.trim().is_empty())
-                && !cfg.command.trim().is_empty()
+            if !cfg.command.trim().is_empty()
                 && (force_api || now >= self.cmd_due.get(&id).copied().unwrap_or(0))
             {
                 self.cmd_due.insert(id.clone(), now + api_every);
@@ -247,76 +252,73 @@ impl UsageService {
     }
 
     pub fn snapshot(&self, settings: &Settings, now: i64) -> Snapshot {
-        let providers =
-            self.providers
-                .iter()
-                .map(|p| {
-                    let id = p.id();
-                    let cfg = settings.provider(id);
-                    let native = id == "gemini" && !cfg.antigravity_path.trim().is_empty();
-                    let st = self.states.get(id).cloned().unwrap_or_default();
-                    let (windows, source) = match st.command.as_ref().filter(|c| {
-                        !native && !cfg.command.trim().is_empty() && !c.windows.is_empty()
-                    }) {
-                        Some(c) => (c.windows.clone(), "command".to_string()),
-                        None => {
-                            let w: Vec<_> = p
-                                .windows(&st, now)
-                                .into_iter()
-                                .filter(|w| !native || w.id.starts_with("gemini-"))
-                                .collect();
-                            match w.first().map(|f| f.source.clone()) {
-                                Some(src) => (w, src),
-                                None => {
-                                    if native {
-                                        (vec![], "none".to_string())
-                                    } else {
-                                        let b = budget_windows(&self.ledger, id, &cfg, now);
-                                        let src = if b.is_empty() { "none" } else { "estimate" };
-                                        (b, src.to_string())
-                                    }
-                                }
+        let providers = self
+            .providers
+            .iter()
+            .map(|p| {
+                let id = p.id();
+                let cfg = settings.provider(id);
+                let st = self.states.get(id).cloned().unwrap_or_default();
+                let (windows, source) = match st
+                    .command
+                    .as_ref()
+                    .filter(|c| !cfg.command.trim().is_empty() && !c.windows.is_empty())
+                {
+                    Some(c) => (c.windows.clone(), "command".to_string()),
+                    None => {
+                        let w = p.windows(&st, now);
+                        match w.first().map(|f| f.source.clone()) {
+                            Some(src) => (w, src),
+                            None => {
+                                let b = budget_windows(&self.ledger, id, &cfg, now);
+                                let src = if b.is_empty() { "none" } else { "estimate" };
+                                (b, src.to_string())
                             }
                         }
-                    };
-                    let mut windows = apply_resets(windows, now);
-                    for w in windows.iter_mut() {
-                        enrich_window(w, st.samples.get(&w.id), now);
                     }
-                    let tokens = self.ledger.stats(id, now);
-                    let detected = !windows.is_empty() || st.log_files > 0 || tokens.week > 0;
-                    ProviderSnapshot {
-                        id: id.to_string(),
-                        name: p.name().to_string(),
-                        enabled: cfg.enabled,
-                        plan: st
-                            .command
-                            .as_ref()
-                            .and_then(|c| c.plan.clone())
-                            .filter(|_| !native && !cfg.command.trim().is_empty())
-                            .or(st.plan.clone()),
-                        windows,
-                        source,
-                        api_error: if cfg.use_api && p.has_api() {
-                            st.api_error.clone()
-                        } else {
-                            None
-                        },
-                        auth_expires_at: st.auth_expires_at.filter(|_| cfg.use_api && p.has_api()),
-                        scan_error: st.scan_error.clone(),
-                        command_error: if native || cfg.command.trim().is_empty() {
-                            None
-                        } else {
-                            st.command_error.clone()
-                        },
-                        log_files: st.log_files,
-                        limits_at: st.limits.as_ref().map(|l| l.at),
-                        tokens,
-                        history: self.ledger.history(id, 30, now),
-                        detected,
-                    }
-                })
-                .collect();
+                };
+                let mut windows = apply_resets(windows, now);
+                for w in windows.iter_mut() {
+                    enrich_window(w, st.samples.get(&w.id), now);
+                }
+                let tokens = self.ledger.stats(id, now);
+                let detected = !windows.is_empty()
+                    || st.log_files > 0
+                    || tokens.week > 0
+                    || st.exe_path.is_some();
+                ProviderSnapshot {
+                    id: id.to_string(),
+                    name: p.name().to_string(),
+                    enabled: cfg.enabled,
+                    plan: st
+                        .command
+                        .as_ref()
+                        .and_then(|c| c.plan.clone())
+                        .filter(|_| !cfg.command.trim().is_empty())
+                        .or(st.plan.clone()),
+                    windows,
+                    source,
+                    api_error: if cfg.use_api && p.has_api() {
+                        st.api_error.clone()
+                    } else {
+                        None
+                    },
+                    auth_expires_at: st.auth_expires_at.filter(|_| cfg.use_api && p.has_api()),
+                    scan_error: st.scan_error.clone(),
+                    command_error: if cfg.command.trim().is_empty() {
+                        None
+                    } else {
+                        st.command_error.clone()
+                    },
+                    log_files: st.log_files,
+                    exe_path: st.exe_path.clone().filter(|_| cfg.use_api),
+                    limits_at: st.limits.as_ref().map(|l| l.at),
+                    tokens,
+                    history: self.ledger.history(id, 30, now),
+                    detected,
+                }
+            })
+            .collect();
         Snapshot { at: now, providers }
     }
 
