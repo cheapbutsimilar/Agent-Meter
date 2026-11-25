@@ -195,6 +195,8 @@
   function windowName(w) {
     const m = w.windowMinutes;
     if (w.id === '5h') return tr('win.5h');
+    if (w.id === 'gemini-5h') return tr('win.ag5h');
+    if (w.id === 'gemini-weekly') return tr('win.agWk');
     if (['7d', '7d_opus', '7d_sonnet', 'pro', 'flash', 'day'].includes(w.id)) return tr(`win.${w.id}`);
     if (/^7d_/.test(w.id)) return tr('win.model7d', { label: w.label });
     if (/^5h_/.test(w.id)) return tr('win.model5h', { label: w.label.replace(/ 5H$/, '') });

@@ -15,7 +15,11 @@ use std::path::PathBuf;
 pub const ENDPOINT: &str = "https://cloudcode-pa.googleapis.com/v1internal";
 
 #[derive(Default)]
-pub struct Gemini;
+pub struct Gemini {
+    native_path: String,
+    native_due: i64,
+    failures: u32,
+}
 
 impl Gemini {
     fn homes(ctx: &Ctx) -> Vec<PathBuf> {
@@ -42,6 +46,9 @@ impl Provider for Gemini {
     }
 
     fn scan(&mut self, ctx: &mut Ctx, now: i64) -> usize {
+        if !ctx.cfg.antigravity_path.trim().is_empty() {
+            return 0;
+        }
         let since = now - ctx.lookback_days * DAY;
         let mut files = 0;
         for dir in Self::homes(ctx) {
@@ -87,6 +94,65 @@ impl Provider for Gemini {
     }
 
     fn poll(&mut self, ctx: &mut Ctx, now: i64) {
+        let path = ctx.cfg.antigravity_path.trim();
+        if path != self.native_path {
+            self.native_path = path.to_owned();
+            self.native_due = 0;
+            self.failures = 0;
+            ctx.state.limits = None;
+            ctx.state.plan = None;
+            ctx.state.samples.clear();
+        }
+        if !path.is_empty() {
+            if now < self.native_due {
+                return;
+            }
+            ctx.state.auth_expires_at = None;
+            let home = ctx
+                .env
+                .var("USERPROFILE")
+                .map(PathBuf::from)
+                .unwrap_or_else(|| ctx.env.home.clone());
+            match agentmeter_antigravity::collect(std::path::Path::new(path), &home) {
+                Ok(s) => {
+                    self.failures = 0;
+                    self.native_due = s.captured_at + 180_000;
+                    let windows: Vec<_> = s
+                        .buckets
+                        .into_iter()
+                        .map(|b| {
+                            let weekly = b.id == "gemini-weekly";
+                            UsageWindow::new(
+                                &b.id,
+                                // same short labels as the other agents' windows (the UI names them)
+                                if weekly { "WK" } else { "5H" },
+                                (1.0 - b.remaining_fraction) * 100.0,
+                                b.resets_at,
+                                "api",
+                            )
+                            .minutes(if weekly { 10080 } else { 300 })
+                        })
+                        .collect();
+                    for w in &windows {
+                        ctx.state
+                            .record_sample(&w.id, s.captured_at, w.used_percent);
+                    }
+                    ctx.state.limits = Some(Limits {
+                        at: s.captured_at,
+                        windows,
+                    });
+                    ctx.state.plan = s.plan;
+                    ctx.state.api_error = None;
+                }
+                Err(e) => {
+                    self.failures = (self.failures + 1).min(4);
+                    self.native_due = agentmeter_antigravity::now_ms()
+                        + (180_000_i64 * (1 << self.failures)).min(1_800_000);
+                    ctx.state.api_error = Some(e);
+                }
+            }
+            return;
+        }
         let creds = Self::homes(ctx)
             .into_iter()
             .filter_map(|d| std::fs::read(d.join("oauth_creds.json")).ok())
@@ -212,6 +278,19 @@ impl Provider for Gemini {
     }
 
     fn windows(&self, st: &ProviderState, now: i64) -> Vec<UsageWindow> {
+        if let Some(l) = &st.limits {
+            if l.windows.iter().any(|w| w.id.starts_with("gemini-")) {
+                return if now >= l.at && now - l.at < agentmeter_antigravity::MAX_AGE_MS {
+                    l.windows
+                        .iter()
+                        .filter(|w| w.resets_at.is_none_or(|r| r > now))
+                        .cloned()
+                        .collect()
+                } else {
+                    vec![]
+                };
+            }
+        }
         match &st.limits {
             Some(l) if now - l.at < 6 * HOUR => l.windows.clone(),
             _ => vec![],
@@ -314,4 +393,29 @@ pub fn parse_quota(json: &Value) -> Vec<UsageWindow> {
         }
     }
     out
+}
+
+#[cfg(test)]
+mod native_tests {
+    use super::*;
+    #[test]
+    fn native_cache_expires_without_showing_a_fresh_zero() {
+        let p = Gemini::default();
+        let st = ProviderState {
+            limits: Some(Limits {
+                at: 1000,
+                windows: vec![
+                    UsageWindow::new("gemini-5h", "5h", 42.0, Some(2000), "api"),
+                    UsageWindow::new("gemini-weekly", "weekly", 30.0, None, "api"),
+                ],
+            }),
+            ..Default::default()
+        };
+        assert_eq!(p.windows(&st, 1500).len(), 2);
+        assert_eq!(p.windows(&st, 2000).len(), 1);
+        assert!(p
+            .windows(&st, 1000 + agentmeter_antigravity::MAX_AGE_MS)
+            .is_empty());
+        assert!(p.windows(&st, 999).is_empty());
+    }
 }

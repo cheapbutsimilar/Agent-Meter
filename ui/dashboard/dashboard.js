@@ -503,6 +503,7 @@
       html += rowT('ag.show', sw(`data-prov="${p.id}" data-key="visible"`, c.visible !== false));
       html += row(esc(tr('ag.login')), esc(connectText(p)), connectBtn(p, { always: true }));
       if (hasApi) html += rowT('ag.api', sw(`data-prov="${p.id}" data-key="useApi"`, c.useApi !== false));
+      if (p.id === 'gemini') html += `<label class="full">${esc(tr('ag.agyPath'))} <small>${esc(tr('ag.agyPath.sub'))}</small><input class="inp" data-prov="gemini" data-key="antigravityPath" value="${esc(c.antigravityPath || '')}" spellcheck="false" placeholder="C:\\...\\agy.exe"></label>`;
       if (p.id === 'claude') {
         const fableOn = !FABLE_IDS.some((id) => hidden.includes(id));
         const has = p.windows.some((w) => FABLE_IDS.includes(w.id));

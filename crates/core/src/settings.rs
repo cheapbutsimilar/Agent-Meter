@@ -25,6 +25,8 @@ pub struct ProviderConfig {
     pub budget_week: f64,
     /// A command printing `{ "windows": [{ "label", "usedPercent", "resetsAt" }] }`.
     pub command: String,
+    /// Official agy.exe absolute path. Empty selects the legacy Gemini collector.
+    pub antigravity_path: String,
 }
 
 impl Default for ProviderConfig {
@@ -38,6 +40,7 @@ impl Default for ProviderConfig {
             budget5h: 0.0,
             budget_week: 0.0,
             command: String::new(),
+            antigravity_path: String::new(),
         }
     }
 }
