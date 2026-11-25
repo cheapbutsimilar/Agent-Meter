@@ -241,6 +241,7 @@
     exportCsv: async () => 'C:\\Users\\me\\AppData\\Roaming\\dev.agentmeter.app\\exports\\agentmeter-usage.csv',
     openDataDir: () => {},
     openUrl: () => {},
+    memeSound: () => {},
     quit: () => {},
     on: (ch, cb) => {
       (listeners[ch] = listeners[ch] || []).push(cb);

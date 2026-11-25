@@ -332,6 +332,21 @@
   border-radius: 6px;
   pointer-events: none;
   position: relative;
+  opacity: 0;
+  /* 5 s on screen: dissolve in, hold, dissolve out (render.js MEME_MS) */
+  animation: am-meme 5s ease-in-out both;
+}
+@keyframes am-meme {
+  0% {
+    opacity: 0;
+  }
+  10%,
+  86% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
 }
 .w .meme.done {
   background: var(--meter-crit, #ff453a);

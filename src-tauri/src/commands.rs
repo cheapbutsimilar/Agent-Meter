@@ -224,6 +224,18 @@ pub fn open_url(app: AppHandle, url: String) {
     }
 }
 
+/// A short system sound for the widget's meme bubble (Korean UI). Played natively so the
+/// webview's autoplay rules never swallow it; silent outside Windows.
+#[tauri::command]
+pub fn meme_sound() {
+    #[cfg(windows)]
+    unsafe {
+        use windows_sys::Win32::System::Diagnostics::Debug::MessageBeep;
+        use windows_sys::Win32::UI::WindowsAndMessaging::MB_ICONASTERISK;
+        MessageBeep(MB_ICONASTERISK);
+    }
+}
+
 #[tauri::command]
 pub fn quit_app(app: AppHandle) {
     crate::quit(&app);
@@ -303,6 +315,7 @@ pub fn handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Send + Sync + 'static 
         export_csv,
         open_data_dir,
         open_url,
+        meme_sound,
         quit_app,
         update_check,
         update_install,

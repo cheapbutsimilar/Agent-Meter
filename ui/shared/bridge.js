@@ -35,6 +35,7 @@
     exportCsv: () => invoke('export_csv'),
     openDataDir: () => invoke('open_data_dir'),
     openUrl: (url) => invoke('open_url', { url }),
+    memeSound: () => invoke('meme_sound'),
     quit: () => invoke('quit_app'),
     on: (channel, cb) => {
       let unlisten = null;

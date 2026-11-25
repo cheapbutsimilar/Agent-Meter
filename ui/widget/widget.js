@@ -10,6 +10,7 @@
   let taskbarHeight = S.taskbarHeight || 40;
   let lastSize = '';
   let dragging = false;
+  let memeTimer = 0;
 
   function render() {
     if (dragging) return;
@@ -29,6 +30,12 @@
       taskbarHeight: (s.mode === 'floating' || s.docked !== false ? taskbarHeight : Number(s.stripHeight) || 40) / scale,
       docked: s.docked !== false,
     });
+    // a new meme bubble (Korean UI): one short sound, and a re-render once it has faded out
+    if (R.takeMemeEvents()) {
+      api.memeSound().catch(() => {});
+      clearTimeout(memeTimer);
+      memeTimer = setTimeout(render, R.MEME_MS + 100);
+    }
     const el = root.firstElementChild;
     if (!el) return;
     const r = el.getBoundingClientRect();

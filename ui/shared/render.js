@@ -54,9 +54,14 @@
   }
 
   /** Korean UI only: a little speech bubble when an agent's tightest shown limit is
-   * nearly out (≤ 5% left) or gone (0%). Windows without a reading or already reset don't count. */
-  function meme(ws) {
-    if (I18N.lang !== 'ko') return '';
+   * nearly out (≤ 5% left) or gone (0%). Windows without a reading or already reset don't count.
+   * The bubble shows once per crossing for MEME_MS, fading in and out; re-renders in between
+   * pick the animation up where it is (negative delay), so it never restarts or flickers. */
+  const MEME_MS = 5000;
+  const memeSeen = {}; // provider id -> { level: 'hot' | 'done', at }
+  let memeNew = 0; // bubbles that started since the last takeMemeEvents()
+
+  function memeLevel(ws) {
     let least = null;
     for (const w of ws) {
       if (w.stale || typeof w.usedPercent !== 'number' || !Number.isFinite(w.usedPercent)) continue;
@@ -64,8 +69,32 @@
       if (least === null || left < least) least = left;
     }
     if (least === null || least > 5) return '';
-    const done = least <= 0;
-    return `<span class="meme${done ? ' done' : ''}">${esc(tr(done ? 'w.meme.done' : 'w.meme.hot'))}</span>`;
+    return least <= 0 ? 'done' : 'hot';
+  }
+
+  function meme(p, ws, now) {
+    if (I18N.lang !== 'ko') return '';
+    const level = memeLevel(ws);
+    const seen = memeSeen[p.id];
+    if (!level) {
+      delete memeSeen[p.id];
+      return '';
+    }
+    if (!seen || seen.level !== level) {
+      memeSeen[p.id] = { level, at: now };
+      memeNew++;
+    }
+    const age = now - memeSeen[p.id].at;
+    if (age < 0 || age >= MEME_MS) return '';
+    const done = level === 'done';
+    return `<span class="meme${done ? ' done' : ''}" style="animation-delay:-${age}ms">${esc(tr(done ? 'w.meme.done' : 'w.meme.hot'))}</span>`;
+  }
+
+  /** How many bubbles appeared since the last call (the widget plays a sound for them). */
+  function takeMemeEvents() {
+    const n = memeNew;
+    memeNew = 0;
+    return n;
   }
 
   function shownProviders(usage, settings) {
@@ -85,7 +114,7 @@
     for (const p of shownProviders(usage, settings)) {
       const ws = U.visibleWindows(p, settings, o);
       const active = U.isActive(p, now) ? `<span class="live" title="${esc(tr('w.working'))}"></span>` : '';
-      const bubble = meme(ws);
+      const bubble = meme(p, ws, now);
       let html = `<div class="prov${bubble ? ' has-meme' : ''}" data-id="${p.id}" title="${esc(tooltip(p, settings, now))}">${bubble}`;
       if (o.logo) html += `<span class="lg">${logo(p.id, h >= 34 ? 18 : 16)}${active}</span>`;
       if (o.name) html += `<span class="nm">${esc(p.name)}</span>`;
@@ -161,7 +190,7 @@
       if (o.logo) html += logo(p.id, 18);
       if (o.name) html += `<span class="nm">${esc(p.name)}</span>`;
       if (p.plan) html += `<span class="plan">${esc(p.plan)}</span>`;
-      html += meme(ws);
+      html += meme(p, ws, now);
       html += `<span class="sp"></span>`;
       if (U.isActive(p, now)) html += `<span class="state live-t"><i class="live"></i>${esc(tr('w.working'))}</span>`;
       html += `</div>`;
@@ -210,5 +239,5 @@
     return ctx.mode === 'floating' ? floating(ctx) : taskbar(ctx);
   }
 
-  root.AM_RENDER = { widget, logo, meter, tooltip, resetText, forecastText, shownProviders, ICON };
+  root.AM_RENDER = { widget, takeMemeEvents, MEME_MS, logo, meter, tooltip, resetText, forecastText, shownProviders, ICON };
 })(typeof self !== 'undefined' ? self : this);
