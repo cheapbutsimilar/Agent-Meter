@@ -54,6 +54,7 @@ const ICONS = {
 function stage(lang) {
   const q = `&lang=${lang}`;
   return `<!doctype html><html lang="${lang}"><head><meta charset="utf-8"><style>
+  :root { color-scheme: dark; }
   * { box-sizing: border-box; }
   html, body { margin: 0; width: ${VIEW.width}px; height: ${VIEW.height}px; overflow: hidden; }
   body { position: relative; font-family: 'Pretendard Variable', Pretendard, 'Segoe UI', system-ui, sans-serif; color: #f3f3f3;
@@ -69,7 +70,7 @@ function stage(lang) {
   .key b { display: inline-block; padding: 9px 14px 11px; border-radius: 9px; font-size: 17px; font-weight: 700; color: #f5f5f5;
            background: linear-gradient(#3b3d42, #2c2e32); border: 1px solid #55585e; box-shadow: 0 4px 0 #18191b, 0 8px 18px rgba(0,0,0,.45); }
   .key.down b { transform: translateY(3px); box-shadow: 0 1px 0 #18191b, 0 3px 8px rgba(0,0,0,.45); background: linear-gradient(#4a3226, #3a281f); border-color: #F05C1A; }
-  .lapse { position: absolute; z-index: 2; right: 22px; top: 20px; font-size: 12px; font-weight: 600; color: #9a9a9a; display: flex; gap: 6px; align-items: center; }
+  .lapse { position: absolute; z-index: 2; right: 16px; top: 12px; padding: 5px 10px; border-radius: 999px; background: rgba(23,24,27,.82); font-size: 12px; font-weight: 600; color: #9a9a9a; display: flex; gap: 6px; align-items: center; }
   .lapse i { width: 7px; height: 7px; border-radius: 50%; background: #e5484d; }
   .bar { position: absolute; left: 0; right: 0; bottom: 0; height: 48px; background: rgba(32,32,34,.96); border-top: 1px solid rgba(255,255,255,.08); }
   .bar .apps { position: absolute; left: 12px; top: 8px; display: flex; gap: 6px; }
@@ -151,8 +152,8 @@ function stageApi(desk) {
     // cameras as the world's visible left edge and scale, anchored to the bottom
     const Z = 2.4;
     // the card shot: the whole card and the taskbar, anchored bottom right
-    // (60px of air above the card keeps the time-lapse badge clear)
-    const sc = innerHeight / (Number(card.height) + 48 + 14 + 60);
+    // (air above the card keeps the time-lapse badge clear)
+    const sc = innerHeight / (Number(card.height) + 48 + 14 + 96);
     window.CAMS = {
       wide: { x: 0, s: innerWidth / W },
       zl: { x: left - 10, s: Z }, // zoomed on the start of the strip
@@ -254,41 +255,64 @@ function stageApi(desk) {
   };
 }
 
-/** The frame list: {t, mode, cam, key, down, cap, clock, ms}; about 12 s, the strip most of it.
- * cam: [from, to, k] between the shots wide / zl / zr. */
+/** Frames per second of the GIF (40 ms per frame, a whole number of GIF centiseconds). */
+const FPS = 25;
+
+/** The frame list, sampled at FPS from timed segments; about 12 s, the strip most of it.
+ * Each frame: {t, mode, cam: [from, to, k], key, down, cap, clock, ms}. Shots: wide / zl / zr / card. */
 function timeline(T) {
-  const out = [];
   const ease = (x) => (x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2);
+  const lerp = (a, b, k) => a + (b - a) * k;
   const clock = (t) => {
     const m = 15 * 60 + 42 + Math.floor(t);
     return T.clock(Math.floor(m / 60), m % 60);
   };
-  const push = (o) => out.push({ key: 0, down: false, mode: 0, ...o, clock: clock(o.t) });
-  const move = (n, ms, from, to, o, dt = 0) => {
-    for (let i = 1; i <= n; i++) push({ ...o(ease(i / n), i), t: (t += dt), cam: [from, to, ease(i / n)], ms });
-  };
+  // dur: seconds; cam: [from, to]; mode: [from, to]; dt: time-lapse minutes over the segment;
+  // key: [from, to] opacity of the PageUp key; down: seconds the key stays pressed
+  const S = (dur, cam, cap, o = {}) => ({ dur, cam, cap, mode: [0, 0], dt: 0, key: [0, 0], down: 0, ...o });
+  const segments = [
+    // ① the whole desktop: the strip docked next to the clock
+    S(1.1, ['wide', 'wide'], T.a, { dt: 3.2 }),
+    S(0.9, ['wide', 'zl'], T.a, { dt: 2.8 }),
+    // ② zoomed in: pan along the strip to the clock while the limits move
+    S(0.65, ['zl', 'zl'], T.b, { dt: 4.5 }),
+    S(3.0, ['zl', 'zr'], T.b, { dt: 27 }),
+    S(0.65, ['zr', 'zr'], T.b, { dt: 4.5 }),
+    // ③ PageUp: the strip sinks, the card rises, the camera pulls back
+    S(0.3, ['zr', 'zr'], T.c, { key: [1, 1] }),
+    S(0.72, ['zr', 'card'], T.c, { mode: [0, 1], key: [1, 1], down: 0.27, ease: true }),
+    S(1.45, ['card', 'card'], T.c, { mode: [1, 1], dt: 8.8, key: [1, 0] }),
+    // ④ PageUp again: back to the strip, zoomed on the clock end, then pan back along it
+    S(0.3, ['card', 'card'], T.d, { mode: [1, 1], key: [1, 1] }),
+    S(0.72, ['card', 'zr'], T.d, { mode: [1, 0], key: [1, 1], down: 0.27, ease: true }),
+    S(1.6, ['zr', 'zl'], T.d, { dt: 9.6, key: [1, 0] }),
+    S(0.3, ['zl', 'zl'], T.d),
+    // zoom back out so the loop starts where it ends
+    S(0.6, ['zl', 'wide'], T.d),
+  ];
+  const ms = 1000 / FPS;
+  const out = [];
   let t = 0;
-  // ① wide shot: the strip docked next to the clock
-  for (let i = 0; i < 8; i++) push({ t: (t += 0.4), cam: ['wide'], cap: T.a, ms: 140 });
-  // zoom in on the start of the strip
-  move(14, 65, 'wide', 'zl', () => ({ cap: T.a }), 0.2);
-  // ② zoomed: pan along the strip to the clock while the limits move
-  for (let i = 0; i < 5; i++) push({ t: (t += 0.9), cam: ['zl'], cap: T.b, ms: 130 });
-  move(30, 100, 'zl', 'zr', () => ({ cap: T.b }), 0.9);
-  for (let i = 0; i < 5; i++) push({ t: (t += 0.9), cam: ['zr'], cap: T.b, ms: 130 });
-  // ③ PageUp: zoom out while the strip sinks and the card rises
-  push({ t, cam: ['zr'], cap: T.c, key: 1, ms: 300 });
-  push({ t, cam: ['zr'], cap: T.c, key: 1, down: true, ms: 120 });
-  move(12, 50, 'zr', 'card', (k, i) => ({ mode: k, cap: T.c, key: 1, down: i < 4 }));
-  for (let i = 0; i < 11; i++) push({ t: (t += 0.8), cam: ['card'], mode: 1, cap: T.c, key: Math.max(0, 1 - i / 5), ms: 130 });
-  // ④ PageUp again: back to the strip, zoomed on the clock end, then pan back along it
-  push({ t, cam: ['card'], mode: 1, cap: T.d, key: 1, ms: 300 });
-  push({ t, cam: ['card'], mode: 1, cap: T.d, key: 1, down: true, ms: 120 });
-  move(12, 50, 'card', 'zr', (k, i) => ({ mode: 1 - k, cap: T.d, key: 1, down: i < 4 }));
-  move(16, 100, 'zr', 'zl', (k, i) => ({ cap: T.d, key: Math.max(0, 1 - i / 5) }), 0.6);
-  push({ t, cam: ['zl'], cap: T.d, ms: 300 });
-  // zoom back out so the loop starts where it ends
-  move(10, 60, 'zl', 'wide', () => ({ cap: T.d }));
+  for (const g of segments) {
+    const n = Math.max(1, Math.round(g.dur * FPS));
+    const moving = g.cam[0] !== g.cam[1] || g.mode[0] !== g.mode[1];
+    for (let i = 1; i <= n; i++) {
+      const x = i / n;
+      const k = moving ? ease(x) : x;
+      const keyX = Math.min(1, x * 2.5); // the key fades out over the first part of a segment
+      out.push({
+        t: t + g.dt * x,
+        cam: [g.cam[0], g.cam[1], k],
+        mode: lerp(g.mode[0], g.mode[1], k),
+        key: lerp(g.key[0], g.key[1], keyX),
+        down: (i - 1) * (ms / 1000) < g.down,
+        cap: g.cap,
+        clock: clock(t + g.dt * x),
+        ms,
+      });
+    }
+    t += g.dt;
+  }
   return out;
 }
 
@@ -312,30 +336,25 @@ async function main() {
     await p.waitForTimeout(400);
     await p.evaluate(() => window.layout());
     const frames = timeline(TEXT[lang]);
-    let list = '';
     for (let i = 0; i < frames.length; i++) {
       await p.evaluate((f) => window.demoFrame(f), frames[i]);
       await p.evaluate(() => window.layout());
       const file = path.join(tmp, `f${String(i).padStart(4, '0')}.png`);
       await p.screenshot({ path: file, animations: 'disabled' });
-      list += `file '${file}'\nduration ${(frames[i].ms / 1000).toFixed(3)}\n`;
     }
-    // the concat demuxer needs the last file once more for its duration to count
-    list += `file '${path.join(tmp, `f${String(frames.length - 1).padStart(4, '0')}.png`)}'\n`;
-    fs.writeFileSync(path.join(tmp, 'list.txt'), list);
     const { Z: zoom, stripW } = await p.evaluate(() => window.WORLD);
     await p.close();
     const dir = path.join(OUT, sub);
     fs.mkdirSync(dir, { recursive: true });
     const gif = path.join(dir, 'demo.gif');
     execFileSync('ffmpeg', [
-      '-y', '-loglevel', 'error', '-f', 'concat', '-safe', '0', '-i', path.join(tmp, 'list.txt'),
+      '-y', '-loglevel', 'error', '-framerate', String(FPS), '-i', path.join(tmp, 'f%04d.png'),
       '-filter_complex', '[0:v]split[a][b];[a]palettegen=max_colors=160:stats_mode=full[p];[b][p]paletteuse=dither=bayer:bayer_scale=4:diff_mode=rectangle',
-      '-fps_mode', 'vfr', '-loop', '0', gif,
+      '-loop', '0', gif,
     ]);
     const total = frames.reduce((a, f) => a + f.ms, 0);
     const strip = frames.filter((f) => f.mode < 0.5).reduce((a, f) => a + f.ms, 0);
-    console.log('saved', path.relative(ROOT, gif), `${(fs.statSync(gif).size / 1048576).toFixed(2)} MB`, `${frames.length} frames`,
+    console.log('saved', path.relative(ROOT, gif), `${(fs.statSync(gif).size / 1048576).toFixed(2)} MB`, `${frames.length} frames @ ${FPS} fps`,
       `${(total / 1000).toFixed(1)} s (strip ${Math.round((strip / total) * 100)}%)`, `zoom ${zoom}x, strip text at ${(zoom * SCALE).toFixed(2)}x its real size, zoomed strip ${Math.round(stripW * zoom * SCALE)} px across the pan`);
     fs.rmSync(tmp, { recursive: true, force: true });
   }

@@ -72,12 +72,9 @@ One widget, two layouts. Press `PageUp` to switch.
 
 The widget steps behind full-screen apps such as videos and games.
 
-<table>
-<tr>
-<td width="30%" valign="top"><img src="docs/screenshots/en/widget-card.png" alt="Card widget"></td>
-<td valign="middle"><img src="docs/screenshots/en/widget-strip.png" alt="The strip layout docked in the Windows taskbar"></td>
-</tr>
-</table>
+<img src="docs/screenshots/en/widget-strip-duo.png" alt="The strip layout: Claude and Codex limits in one line, as docked in the taskbar" width="100%">
+
+<img src="docs/screenshots/en/widget-card.png" alt="The card layout" width="100%">
 
 ### Appearance
 
@@ -276,7 +273,7 @@ ui/update/         the "new version" window
 ui/shared/         i18n.js (Korean/English), tokens.css, theme.js, render.js (widget renderer), util.js, logos.js
 crates/devserver/  the browser preview server
 scripts/           mock-api.js (demo data), preview.js (README images), release-notes.js, make-icons.py
-docs/screenshots/  README images; demo-gif.js renders the demo GIF from the real widget UI (a reproduction, not a recording)
+docs/screenshots/  README images; demo-gif.js (demo GIF) and strip-duo.js render them from the real widget UI (reproductions, not recordings)
 ```
 
 See [docs/HANDOFF.md](docs/HANDOFF.md) for building another app on the same design and shell, and

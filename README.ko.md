@@ -59,12 +59,9 @@ AgentMeter는 각 서비스의 공식 한도 %와 내 컴퓨터의 로그를 모
 
 전체 화면 앱(영상 · 게임)이 앞에 있으면 위젯은 그 뒤로 빠집니다.
 
-<table>
-<tr>
-<td width="30%" valign="top"><img src="docs/screenshots/widget-card.png" alt="카드형 위젯"></td>
-<td valign="middle"><img src="docs/screenshots/widget-strip.png" alt="작업표시줄에 붙인 가로형 위젯"></td>
-</tr>
-</table>
+<img src="docs/screenshots/widget-strip-duo.png" alt="가로형 위젯: 작업표시줄에 붙는 한 줄에 Claude · Codex 한도" width="100%">
+
+<img src="docs/screenshots/widget-card.png" alt="카드형 위젯" width="100%">
 
 ### 모양
 
@@ -236,7 +233,7 @@ ui/dashboard/      대시보드
 ui/shared/         tokens.css(디자인 토큰), theme.js(테마 엔진), render.js(위젯 렌더러), util.js, logos.js
 crates/devserver/  브라우저 미리보기 서버
 scripts/           mock-api.js(데모 데이터), preview.js(README 이미지), make-icons.py(아이콘)
-docs/screenshots/  README 이미지. demo-gif.js: 실제 위젯 UI를 렌더링한 데모 GIF (화면 녹화가 아닌 재현)
+docs/screenshots/  README 이미지. demo-gif.js(데모 GIF) · strip-duo.js: 실제 위젯 UI를 렌더링 (화면 녹화가 아닌 재현)
 ```
 
 같은 디자인과 구조로 다른 앱을 만들 때는 [docs/HANDOFF.md](docs/HANDOFF.md)를 참고하세요.
