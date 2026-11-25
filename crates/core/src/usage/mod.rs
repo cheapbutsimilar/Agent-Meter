@@ -98,7 +98,7 @@ impl UsageService {
     ) -> Self {
         let lookback_days = 8;
         let providers: Vec<Box<dyn Provider>> = vec![
-            Box::new(claude::Claude),
+            Box::new(claude::Claude::default()),
             Box::new(codex::Codex::default()),
             Box::new(gemini::Gemini),
             Box::new(grok::Grok),

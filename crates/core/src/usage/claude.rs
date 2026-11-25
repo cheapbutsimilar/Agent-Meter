@@ -1,8 +1,12 @@
 //! Claude Code
 //! * Logs:   `<config>/projects/<project>/<session>.jsonl` — assistant messages carry `message.usage`.
 //! * Limits: `GET https://api.anthropic.com/api/oauth/usage` with the OAuth token Claude Code
-//!   stores in `<config>/.credentials.json` (or the macOS Keychain). Read-only: the token is
-//!   never refreshed or written here — Claude Code does that itself when it runs.
+//!   stores in `<config>/.credentials.json` (or the macOS Keychain).
+//! * Expired token: refreshed here the way Claude Code does it, and written back to the same
+//!   file. Claude Code sessions inside the Claude desktop app sign in on their own and never
+//!   touch that file, so without this the limits went blank a few hours after the last
+//!   terminal `claude` run. Only once the token has actually expired: a running Claude Code
+//!   renews it a few minutes early, so the two don't race.
 
 use super::common::*;
 use super::files::{dedup_paths, list_files, split_paths, ListOptions};
@@ -12,6 +16,13 @@ use serde_json::Value;
 use std::path::PathBuf;
 
 pub const USAGE_URL: &str = "https://api.anthropic.com/api/oauth/usage";
+/// Token endpoints, newest first (older Claude Code versions used the console host).
+pub const TOKEN_URLS: [&str; 2] = [
+    "https://platform.claude.com/v1/oauth/token",
+    "https://console.anthropic.com/v1/oauth/token",
+];
+/// Claude Code's public OAuth client id (the refresh must name it).
+const CLIENT_ID: &str = "9d1c250a-e61b-44d9-88ed-5944d1962f5e";
 /// Account profile: the current plan. `.credentials.json` keeps the plan from the last
 /// login, so an upgrade (Pro -> Max) doesn't show there until the user logs in again.
 pub const PROFILE_URL: &str = "https://api.anthropic.com/api/oauth/profile";
@@ -83,7 +94,38 @@ pub fn plan_from_profile(v: &Value) -> Option<String> {
 }
 
 #[derive(Default)]
-pub struct Claude;
+pub struct Claude {
+    /// A refresh token the server already turned down: don't send it again.
+    dead_refresh: Option<String>,
+}
+
+/// The login as stored: the `claudeAiOauth` object, plus the file it came from (None for
+/// the macOS Keychain, which this app doesn't write to).
+struct Creds {
+    oauth: Value,
+    file: Option<(PathBuf, Value)>,
+}
+
+/// Replace a JSON file in one step (temp file + rename), private to the user on Unix.
+fn write_private(path: &std::path::Path, data: &[u8]) -> std::io::Result<()> {
+    use std::io::Write;
+    let tmp = path.with_extension("json.agentmeter-tmp");
+    {
+        let mut o = std::fs::OpenOptions::new();
+        o.write(true).create(true).truncate(true);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::OpenOptionsExt;
+            o.mode(0o600);
+        }
+        let mut f = o.open(&tmp)?;
+        f.write_all(data)?;
+        f.sync_all()?;
+    }
+    std::fs::rename(&tmp, path).inspect_err(|_| {
+        let _ = std::fs::remove_file(&tmp);
+    })
+}
 
 impl Claude {
     fn config_dirs(ctx: &Ctx) -> Vec<PathBuf> {
@@ -97,12 +139,16 @@ impl Claude {
         dedup_paths(dirs)
     }
 
-    fn read_credentials(ctx: &Ctx) -> Option<Value> {
+    fn read_credentials(ctx: &Ctx) -> Option<Creds> {
         for dir in Self::config_dirs(ctx) {
-            if let Ok(bytes) = std::fs::read(dir.join(".credentials.json")) {
+            let path = dir.join(".credentials.json");
+            if let Ok(bytes) = std::fs::read(&path) {
                 if let Ok(v) = serde_json::from_slice::<Value>(&bytes) {
                     if str_of(v.pointer("/claudeAiOauth/accessToken")).is_some() {
-                        return v.get("claudeAiOauth").cloned();
+                        return Some(Creds {
+                            oauth: v.get("claudeAiOauth").cloned()?,
+                            file: Some((path, v)),
+                        });
                     }
                 }
             }
@@ -121,11 +167,84 @@ impl Claude {
             if out.status.success() {
                 let v: Value = serde_json::from_slice(&out.stdout).ok()?;
                 if str_of(v.pointer("/claudeAiOauth/accessToken")).is_some() {
-                    return v.get("claudeAiOauth").cloned();
+                    return Some(Creds {
+                        oauth: v.get("claudeAiOauth").cloned()?,
+                        file: None,
+                    });
                 }
             }
         }
         None
+    }
+
+    /// Trade the refresh token for a new access token and save both where Claude Code
+    /// keeps them, so Claude Code picks up the same login next time it runs.
+    fn refresh(&mut self, ctx: &mut Ctx, creds: &mut Creds, now: i64) -> Result<(), String> {
+        const RELOGIN: &str = "로그인 만료 — 원클릭 연결로 다시 로그인하세요";
+        let Some((path, whole)) = creds.file.as_mut() else {
+            return Err("토큰 만료 — 터미널에서 claude를 한 번 실행하면 갱신됩니다".into());
+        };
+        let Some(rt) = str_of(creds.oauth.get("refreshToken")).map(String::from) else {
+            return Err(RELOGIN.into());
+        };
+        if self.dead_refresh.as_deref() == Some(rt.as_str()) {
+            return Err(RELOGIN.into());
+        }
+        let headers = [
+            ("Content-Type", "application/json".to_string()),
+            ("User-Agent", "agentmeter/0.2".to_string()),
+        ];
+        let body = serde_json::json!({
+            "grant_type": "refresh_token",
+            "refresh_token": rt,
+            "client_id": CLIENT_ID,
+        });
+        let mut last = String::from("응답 없음");
+        for url in TOKEN_URLS {
+            let r = match fetch_json(ctx.http, "POST", url, &headers, Some(body.clone())) {
+                Ok(r) => r,
+                Err(e) => {
+                    last = e.chars().take(100).collect();
+                    continue;
+                }
+            };
+            if r.status == 429 {
+                ctx.backoff = true;
+                return Err("로그인 갱신 요청이 많습니다 (잠시 후 재시도)".into());
+            }
+            let ok = r.ok();
+            let j = r.json.unwrap_or(Value::Null);
+            let token = str_of(j.get("access_token"));
+            if ok && token.is_some() {
+                let o = creds
+                    .oauth
+                    .as_object_mut()
+                    .ok_or("로그인 정보 형식이 달라요")?;
+                o.insert("accessToken".into(), Value::from(token.unwrap_or_default()));
+                if let Some(new_rt) = str_of(j.get("refresh_token")) {
+                    o.insert("refreshToken".into(), Value::from(new_rt));
+                }
+                let secs = j.get("expires_in").and_then(|v| v.as_i64()).unwrap_or(3600);
+                o.insert("expiresAt".into(), Value::from(now + secs * 1000));
+                if let Some(scope) = str_of(j.get("scope")) {
+                    let list: Vec<Value> = scope.split_whitespace().map(Value::from).collect();
+                    o.insert("scopes".into(), Value::Array(list));
+                }
+                whole["claudeAiOauth"] = creds.oauth.clone();
+                let data = serde_json::to_vec(whole).map_err(|e| e.to_string())?;
+                write_private(path, &data)
+                    .map_err(|e| format!("갱신한 로그인 정보를 저장하지 못했어요: {e}"))?;
+                return Ok(());
+            }
+            let code = str_of(j.get("error")).unwrap_or_default();
+            if code == "invalid_grant" || r.status == 401 {
+                // the login itself is gone (signed out, or replaced by a newer login)
+                self.dead_refresh = Some(rt);
+                return Err(RELOGIN.into());
+            }
+            last = format!("{} {}", r.status, code);
+        }
+        Err(format!("로그인 갱신 실패 ({last})"))
     }
 }
 
@@ -167,36 +286,59 @@ impl Provider for Claude {
     }
 
     fn poll(&mut self, ctx: &mut Ctx, now: i64) {
-        let Some(creds) = Self::read_credentials(ctx) else {
+        let Some(mut creds) = Self::read_credentials(ctx) else {
             ctx.state.api_error = Some("Claude Code 로그인 정보를 찾을 수 없습니다".into());
             return;
         };
         // the account profile (below) wins; the login file is only a starting point
         if ctx.state.plan_checked_at == 0 || ctx.state.plan.is_none() {
-            if let Some(plan) = plan_from_credentials(&creds) {
+            if let Some(plan) = plan_from_credentials(&creds.oauth) {
                 ctx.state.plan = Some(plan);
             }
         }
-        ctx.state.auth_expires_at = creds
-            .get("expiresAt")
-            .and_then(|v| v.as_f64())
-            .map(|e| e as i64);
-        if let Some(exp) = creds.get("expiresAt").and_then(|v| v.as_f64()) {
-            if (exp as i64) < now {
-                ctx.state.api_error =
-                    Some("토큰 만료 — Claude Code를 한 번 실행하면 갱신됩니다".into());
+        let expires = |c: &Creds| {
+            c.oauth
+                .get("expiresAt")
+                .and_then(|v| v.as_f64())
+                .map(|e| e as i64)
+        };
+        let mut refreshed = false;
+        if expires(&creds).is_some_and(|e| e <= now) {
+            if let Err(e) = self.refresh(ctx, &mut creds, now) {
+                ctx.state.auth_expires_at = expires(&creds);
+                ctx.state.api_error = Some(e);
                 return;
             }
+            refreshed = true;
         }
-        let token = str_of(creds.get("accessToken"))
-            .unwrap_or_default()
-            .to_string();
-        let headers = [
-            ("Authorization", format!("Bearer {token}")),
-            ("anthropic-beta", "oauth-2025-04-20".to_string()),
-            ("Content-Type", "application/json".to_string()),
-            ("User-Agent", "agentmeter/0.1".to_string()),
-        ];
+        ctx.state.auth_expires_at = expires(&creds);
+        let headers_for = |c: &Creds| {
+            let token = str_of(c.oauth.get("accessToken"))
+                .unwrap_or_default()
+                .to_string();
+            [
+                ("Authorization", format!("Bearer {token}")),
+                ("anthropic-beta", "oauth-2025-04-20".to_string()),
+                ("Content-Type", "application/json".to_string()),
+                ("User-Agent", "agentmeter/0.1".to_string()),
+            ]
+        };
+        let mut headers = headers_for(&creds);
+        let mut res = fetch_json(ctx.http, "GET", USAGE_URL, &headers, None);
+        // turned down although not expired on paper (revoked early, clock skew): renew once
+        if !refreshed && matches!(&res, Ok(r) if r.status == 401) {
+            match self.refresh(ctx, &mut creds, now) {
+                Ok(()) => {
+                    ctx.state.auth_expires_at = expires(&creds);
+                    headers = headers_for(&creds);
+                    res = fetch_json(ctx.http, "GET", USAGE_URL, &headers, None);
+                }
+                Err(e) => {
+                    ctx.state.api_error = Some(e);
+                    return;
+                }
+            }
+        }
         if now - ctx.state.plan_checked_at >= PLAN_EVERY_MS {
             if let Ok(r) = fetch_json(ctx.http, "GET", PROFILE_URL, &headers, None) {
                 if let (true, Some(j)) = (r.ok(), r.json.as_ref()) {
@@ -207,7 +349,7 @@ impl Provider for Claude {
                 }
             }
         }
-        match fetch_json(ctx.http, "GET", USAGE_URL, &headers, None) {
+        match res {
             Err(e) => {
                 ctx.state.api_error = Some(format!(
                     "연결 실패: {}",

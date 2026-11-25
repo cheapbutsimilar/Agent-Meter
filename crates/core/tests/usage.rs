@@ -796,3 +796,173 @@ fn claude_plan_follows_the_account_not_the_login_file() {
     svc.refresh(&settings(json!({})), true, now + 5 * MIN);
     assert_eq!(n(&calls), 1);
 }
+
+#[test]
+fn expired_claude_login_is_refreshed_and_saved() {
+    use agentmeter_core::usage::claude::TOKEN_URLS;
+    let f = fixture();
+    let now = f.now;
+    let cred_path = f.home.join(".claude/.credentials.json");
+    let write_creds = |access: &str, exp: i64| {
+        std::fs::write(
+            &cred_path,
+            json!({
+                "claudeAiOauth": { "accessToken": access, "refreshToken": "rt-old", "expiresAt": exp,
+                                   "scopes": ["user:inference"], "subscriptionType": "max" },
+                "mcpOAuth": { "keep": "me" }
+            })
+            .to_string(),
+        )
+        .unwrap();
+    };
+    let usage_ok = |token: &'static str| -> Route {
+        Box::new(move |h, _| {
+            if h.iter()
+                .any(|(k, v)| *k == "Authorization" && v == &format!("Bearer {token}"))
+            {
+                (
+                    200,
+                    json!({ "five_hour": { "utilization": 20, "resets_at": null } }),
+                )
+            } else {
+                (401, json!({ "error": "unauthorized" }))
+            }
+        })
+    };
+
+    // 1) expired on paper (Claude app sessions never renew this file): refreshed and saved
+    write_creds("tok-old", now - 60_000);
+    let mut routes: HashMap<String, Route> = HashMap::new();
+    routes.insert(
+        TOKEN_URLS[0].into(),
+        Box::new(|h, body| {
+            let b: Value = serde_json::from_str(body.unwrap()).unwrap();
+            assert_eq!(b["grant_type"], "refresh_token");
+            assert_eq!(b["refresh_token"], "rt-old");
+            assert!(b["client_id"].as_str().is_some_and(|c| !c.is_empty()));
+            assert!(h.iter().any(|(k, v)| *k == "Content-Type" && v == "application/json"));
+            (200, json!({ "access_token": "tok-new", "refresh_token": "rt-new", "expires_in": 28800, "scope": "user:inference user:profile" }))
+        }),
+    );
+    routes.insert(claude::USAGE_URL.into(), usage_ok("tok-new"));
+    let calls = Arc::new(Mutex::new(vec![]));
+    let http = FakeHttp {
+        routes,
+        calls: calls.clone(),
+    };
+    let mut svc = UsageService::new(None, env(&f.home), Box::new(http), now - 60 * MIN);
+    let r = svc.refresh(&settings(json!({})), false, now);
+    let c = r
+        .snapshot
+        .providers
+        .iter()
+        .find(|p| p.id == "claude")
+        .unwrap();
+    assert_eq!(c.api_error, None);
+    assert_eq!(c.source, "api");
+    assert_eq!(labels(&c.windows)[0], ("5H".into(), 20.0));
+    let saved: Value = serde_json::from_slice(&std::fs::read(&cred_path).unwrap()).unwrap();
+    assert_eq!(saved["claudeAiOauth"]["accessToken"], "tok-new");
+    assert_eq!(saved["claudeAiOauth"]["refreshToken"], "rt-new");
+    assert_eq!(saved["claudeAiOauth"]["expiresAt"], json!(now + 28_800_000));
+    assert_eq!(
+        saved["claudeAiOauth"]["scopes"],
+        json!(["user:inference", "user:profile"])
+    );
+    assert_eq!(
+        saved["claudeAiOauth"]["subscriptionType"], "max",
+        "other fields kept"
+    );
+    assert_eq!(saved["mcpOAuth"]["keep"], "me", "other sections kept");
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let mode = std::fs::metadata(&cred_path).unwrap().permissions().mode() & 0o777;
+        assert_eq!(mode, 0o600, "login file stays private");
+    }
+
+    // 2) newest token host down: the older host still works
+    write_creds("tok-old", now - 60_000);
+    let mut routes: HashMap<String, Route> = HashMap::new();
+    routes.insert(
+        TOKEN_URLS[1].into(),
+        Box::new(|_, _| (200, json!({ "access_token": "tok-b", "expires_in": 3600 }))),
+    );
+    routes.insert(claude::USAGE_URL.into(), usage_ok("tok-b"));
+    let http = FakeHttp {
+        routes,
+        calls: Arc::new(Mutex::new(vec![])),
+    };
+    let mut svc = UsageService::new(None, env(&f.home), Box::new(http), now - 60 * MIN);
+    let r = svc.refresh(&settings(json!({})), false, now);
+    let c = r
+        .snapshot
+        .providers
+        .iter()
+        .find(|p| p.id == "claude")
+        .unwrap();
+    assert_eq!(c.api_error, None);
+    let saved: Value = serde_json::from_slice(&std::fs::read(&cred_path).unwrap()).unwrap();
+    assert_eq!(
+        saved["claudeAiOauth"]["refreshToken"], "rt-old",
+        "kept when none is returned"
+    );
+
+    // 3) the login itself is gone: ask for a new login, and don't keep sending the dead token
+    write_creds("tok-old", now - 60_000);
+    let mut routes: HashMap<String, Route> = HashMap::new();
+    routes.insert(
+        TOKEN_URLS[0].into(),
+        Box::new(|_, _| (400, json!({ "error": "invalid_grant" }))),
+    );
+    let calls = Arc::new(Mutex::new(vec![]));
+    let http = FakeHttp {
+        routes,
+        calls: calls.clone(),
+    };
+    let mut svc = UsageService::new(None, env(&f.home), Box::new(http), now - 60 * MIN);
+    let r = svc.refresh(&settings(json!({})), false, now);
+    let c = r
+        .snapshot
+        .providers
+        .iter()
+        .find(|p| p.id == "claude")
+        .unwrap();
+    assert!(c.api_error.as_deref().unwrap().contains("원클릭 연결"));
+    svc.refresh(&settings(json!({})), true, now + 5 * MIN);
+    let token_calls = calls
+        .lock()
+        .unwrap()
+        .iter()
+        .filter(|u| TOKEN_URLS.contains(&u.as_str()))
+        .count();
+    assert_eq!(token_calls, 1);
+
+    // 4) not expired on paper but turned down (revoked early): renewed once, then read
+    write_creds("tok-revoked", now + 3_600_000);
+    let mut routes: HashMap<String, Route> = HashMap::new();
+    routes.insert(
+        TOKEN_URLS[0].into(),
+        Box::new(|_, _| {
+            (
+                200,
+                json!({ "access_token": "tok-fresh", "expires_in": 3600 }),
+            )
+        }),
+    );
+    routes.insert(claude::USAGE_URL.into(), usage_ok("tok-fresh"));
+    let http = FakeHttp {
+        routes,
+        calls: Arc::new(Mutex::new(vec![])),
+    };
+    let mut svc = UsageService::new(None, env(&f.home), Box::new(http), now - 60 * MIN);
+    let r = svc.refresh(&settings(json!({})), false, now);
+    let c = r
+        .snapshot
+        .providers
+        .iter()
+        .find(|p| p.id == "claude")
+        .unwrap();
+    assert_eq!(c.api_error, None);
+    assert_eq!(c.source, "api");
+}
