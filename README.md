@@ -74,7 +74,7 @@ The widget steps behind full-screen apps such as videos and games.
 
 <img src="docs/screenshots/en/widget-strip-duo.png" alt="The strip layout: Claude and Codex limits in one line, as docked in the taskbar" width="100%">
 
-<img src="docs/screenshots/en/widget-card.png" alt="The card layout" width="100%">
+<p align="center"><img src="docs/screenshots/en/widget-card.png" alt="The card layout" width="60%"></p>
 
 ### Appearance
 

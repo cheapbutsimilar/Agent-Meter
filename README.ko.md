@@ -61,7 +61,7 @@ AgentMeter는 각 서비스의 공식 한도 %와 내 컴퓨터의 로그를 모
 
 <img src="docs/screenshots/widget-strip-duo.png" alt="가로형 위젯: 작업표시줄에 붙는 한 줄에 Claude · Codex 한도" width="100%">
 
-<img src="docs/screenshots/widget-card.png" alt="카드형 위젯" width="100%">
+<p align="center"><img src="docs/screenshots/widget-card.png" alt="카드형 위젯" width="60%"></p>
 
 ### 모양
 
