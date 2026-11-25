@@ -14,7 +14,7 @@ right in your taskbar or on your desktop.
 ![100% local](https://img.shields.io/badge/100%25%20local-zero%20telemetry-2B2B2B?style=flat-square)
 [![MIT](https://img.shields.io/badge/license-MIT-2B2B2B?style=flat-square)](LICENSE)
 
-**English** | [한국어](README.ko.md)
+**English** | [한국어](README.ko.md) | [日本語](README.ja.md) | [简体中文](README.zh-CN.md)
 
 [**Download**](https://github.com/cheapbutsimilar/Agent-Meter/releases/latest) &nbsp;·&nbsp;
 [Features](#features) &nbsp;·&nbsp;

@@ -13,7 +13,7 @@
 ![설치 파일 2.3MB](https://img.shields.io/badge/%EC%84%A4%EC%B9%98%20%ED%8C%8C%EC%9D%BC-2.3MB-2B2B2B?style=flat-square)
 ![MIT](https://img.shields.io/badge/license-MIT-2B2B2B?style=flat-square)
 
-[English](README.md) | **한국어**
+[English](README.md) | **한국어** | [日本語](README.ja.md) | [简体中文](README.zh-CN.md)
 
 [**다운로드**](https://github.com/cheapbutsimilar/Agent-Meter/releases/latest) &nbsp;·&nbsp;
 [기능](#기능) &nbsp;·&nbsp;
