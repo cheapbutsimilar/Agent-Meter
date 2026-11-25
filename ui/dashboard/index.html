@@ -34,12 +34,18 @@
           <button data-page="alerts"><svg viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 1 1 12 0v5l1.5 2h-15z" /><path d="M10 20.5a2 2 0 0 0 4 0" /></svg><span data-i18n="page.alerts"></span></button>
           <button data-page="general"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" /><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1" /></svg><span data-i18n="page.general"></span></button>
           <div class="side-foot">
-            <div class="side-label" data-i18n="side.layout"></div>
-            <div class="seg seg-mode" id="mode-switch">
-              <button data-mode="taskbar" data-i18n="layout.strip"></button>
-              <button data-mode="floating" data-i18n="layout.card"></button>
+            <div class="side-row">
+              <div class="side-label" data-i18n="side.layout"></div>
+              <div class="side-hint" id="mode-hint"></div>
             </div>
-            <div class="side-hint" id="mode-hint"></div>
+            <div class="seg seg-mode" id="mode-switch">
+              <button data-mode="taskbar" data-i18n-title="layout.strip"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h11M4 17h14" /></svg></button>
+              <button data-mode="floating" data-i18n-title="layout.card"><svg viewBox="0 0 24 24"><rect x="5" y="3.5" width="14" height="17" rx="2.5" /><path d="M8.5 8h7M8.5 12h7M8.5 16h4" /></svg></button>
+            </div>
+            <div class="side-links">
+              <button class="side-link" data-url="https://github.com/cheapbutsimilar/Agent-Meter" data-i18n-title="side.github"><svg viewBox="0 0 24 24"><path d="M9 19c-4.3 1.4-4.3-2.5-6-3m12 5v-3.5c0-1 .1-1.4-.5-2 2.8-.3 5.5-1.4 5.5-6a4.6 4.6 0 0 0-1.3-3.2 4.2 4.2 0 0 0-.1-3.2s-1.1-.3-3.5 1.3a12.3 12.3 0 0 0-6.2 0C6.5 2.8 5.4 3.1 5.4 3.1a4.2 4.2 0 0 0-.1 3.2A4.6 4.6 0 0 0 4 9.5c0 4.6 2.7 5.7 5.5 6-.6.6-.6 1.2-.5 2V21" /></svg></button>
+              <button class="side-link" data-url="https://github.com/cheapbutsimilar/sponsors" data-i18n-title="side.donate"><svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z" /></svg></button>
+            </div>
           </div>
         </nav>
         <main id="main" tabindex="-1"></main>

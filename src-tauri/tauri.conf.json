@@ -37,7 +37,7 @@
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDA5RjZCOTgwRTU4QkE4RkUKUldUK3FJdmxnTG4yQ1RuTUlGUURRQUFsZHJhZldJQ2FsYlM0Mlh2OXZuT2NkVzlPOVMxdCtRcXUK",
       "endpoints": [
-        "https://github.com/cheapbutsimilar/agents_usage_monitor/releases/latest/download/latest.json"
+        "https://github.com/cheapbutsimilar/Agent-Meter/releases/latest/download/latest.json"
       ],
       "windows": {
         "installMode": "passive"

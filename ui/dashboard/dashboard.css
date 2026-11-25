@@ -170,19 +170,55 @@ body {
 }
 .side-foot {
   margin-top: auto;
-  padding: 12px 4px 2px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px 4px 4px;
   border-top: 1px solid var(--line);
+}
+.side-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 .side-label {
   font-size: 11px;
   color: var(--text-3);
   font-weight: 600;
-  margin-bottom: 8px;
 }
 .side-hint {
-  font-size: 11px;
+  margin-left: auto;
+  font-size: 10px;
   color: var(--text-3);
-  margin-top: 8px;
+  white-space: nowrap;
+}
+.side-foot .side-hint kbd {
+  font-size: 10px;
+  padding: 0 4px;
+}
+.side-links {
+  display: flex;
+  gap: 6px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.side-link {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-3);
+}
+.side-link:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+.side-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 .side-hint kbd,
 kbd {
@@ -333,7 +369,14 @@ h2:first-child {
 }
 .seg-mode button {
   flex: 1;
+  height: 30px;
   padding: 0 6px;
+  display: grid;
+  place-items: center;
+}
+.seg-mode svg {
+  width: 18px;
+  height: 18px;
 }
 .seg-mode button.active {
   background: var(--accent);

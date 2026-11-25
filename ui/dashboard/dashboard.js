@@ -1045,6 +1045,13 @@
   // chrome
   document.querySelectorAll('#nav > button').forEach((b) => b.addEventListener('click', () => go(b.dataset.page)));
   document.querySelectorAll('#mode-switch button').forEach((b) => b.addEventListener('click', () => set({ mode: b.dataset.mode, widgetVisible: true })));
+  // repo / sponsor links: webview ignores target=_blank, so go through the open_url command
+  document.querySelectorAll('.side-link[data-url]').forEach((b) =>
+    b.addEventListener('click', () => {
+      const url = b.dataset.url;
+      if (/^https:\/\//.test(url)) api.openUrl(url);
+    }),
+  );
   $('#btn-settings').addEventListener('click', () => go('general'));
   $('#btn-refresh').addEventListener('click', () => {
     api.refresh();

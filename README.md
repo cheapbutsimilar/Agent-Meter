@@ -7,7 +7,7 @@
 Live usage limits for **Claude Code · Codex · Gemini CLI · Antigravity · Grok**,<br>
 right in your taskbar or on your desktop.
 
-[![Latest release](https://img.shields.io/github/v/release/cheapbutsimilar/agents_usage_monitor?style=flat-square&color=F05C1A&label=release)](https://github.com/cheapbutsimilar/agents_usage_monitor/releases/latest)
+[![Latest release](https://img.shields.io/github/v/release/cheapbutsimilar/Agent-Meter?style=flat-square&color=F05C1A&label=release)](https://github.com/cheapbutsimilar/Agent-Meter/releases/latest)
 ![Windows 10 · 11](https://img.shields.io/badge/Windows-10%20%C2%B7%2011-2B2B2B?style=flat-square)
 ![Rust · Tauri 2](https://img.shields.io/badge/Rust-Tauri%202-2B2B2B?style=flat-square&logo=tauri&logoColor=white)
 ![Installer 2.3 MB](https://img.shields.io/badge/installer-2.3%20MB-2B2B2B?style=flat-square)
@@ -16,7 +16,7 @@ right in your taskbar or on your desktop.
 
 **English** | [한국어](README.ko.md)
 
-[**Download**](https://github.com/cheapbutsimilar/agents_usage_monitor/releases/latest) &nbsp;·&nbsp;
+[**Download**](https://github.com/cheapbutsimilar/Agent-Meter/releases/latest) &nbsp;·&nbsp;
 [Features](#features) &nbsp;·&nbsp;
 [Widget](#widget) &nbsp;·&nbsp;
 [Dashboard](#dashboard) &nbsp;·&nbsp;
@@ -108,7 +108,7 @@ Pick a theme in Dashboard → **Appearance**. Every value stays within safe rang
 
 ## Install
 
-1. Download `AgentMeter_<version>_x64-setup.exe` from the [**latest release**](https://github.com/cheapbutsimilar/agents_usage_monitor/releases/latest) and run it.
+1. Download `AgentMeter_<version>_x64-setup.exe` from the [**latest release**](https://github.com/cheapbutsimilar/Agent-Meter/releases/latest) and run it.
 2. If Windows shows **"Windows protected your PC"**, click **More info → Run anyway**. The installer isn't
    code-signed because this is an independent open-source project. Every release is built by a
    [public workflow](.github/workflows/release.yml) from this repository, and updates are verified with a
@@ -248,11 +248,11 @@ You need [Git](https://git-scm.com) and [Rust](https://rustup.rs) (stable). On L
 `libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libxdo-dev`.
 
 ```bash
-git clone -b main https://github.com/cheapbutsimilar/agents_usage_monitor
+git clone -b main https://github.com/cheapbutsimilar/Agent-Meter
 ```
 
 ```bash
-cd agents_usage_monitor && cargo run --release -p agentmeter
+cd Agent-Meter && cargo run --release -p agentmeter
 ```
 
 For the installer, run `cargo install tauri-cli --version "^2" --locked`, then `cargo tauri build` in the

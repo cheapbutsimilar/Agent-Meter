@@ -53,6 +53,21 @@
     return lines.join('\n');
   }
 
+  /** Korean UI only: a little speech bubble when an agent's tightest shown limit is
+   * nearly out (≤ 5% left) or gone (0%). Windows without a reading or already reset don't count. */
+  function meme(ws) {
+    if (I18N.lang !== 'ko') return '';
+    let least = null;
+    for (const w of ws) {
+      if (w.stale || typeof w.usedPercent !== 'number' || !Number.isFinite(w.usedPercent)) continue;
+      const left = Math.max(0, 100 - w.usedPercent);
+      if (least === null || left < least) least = left;
+    }
+    if (least === null || least > 5) return '';
+    const done = least <= 0;
+    return `<span class="meme${done ? ' done' : ''}">${esc(tr(done ? 'w.meme.done' : 'w.meme.hot'))}</span>`;
+  }
+
   function shownProviders(usage, settings) {
     return (usage.providers || []).filter((p) => {
       const cfg = (settings.providers || {})[p.id] || {};
@@ -70,7 +85,8 @@
     for (const p of shownProviders(usage, settings)) {
       const ws = U.visibleWindows(p, settings, o);
       const active = U.isActive(p, now) ? `<span class="live" title="${esc(tr('w.working'))}"></span>` : '';
-      let html = `<div class="prov" data-id="${p.id}" title="${esc(tooltip(p, settings, now))}">`;
+      const bubble = meme(ws);
+      let html = `<div class="prov${bubble ? ' has-meme' : ''}" data-id="${p.id}" title="${esc(tooltip(p, settings, now))}">${bubble}`;
       if (o.logo) html += `<span class="lg">${logo(p.id, h >= 34 ? 18 : 16)}${active}</span>`;
       if (o.name) html += `<span class="nm">${esc(p.name)}</span>`;
       if (!ws.length) {
@@ -145,6 +161,7 @@
       if (o.logo) html += logo(p.id, 18);
       if (o.name) html += `<span class="nm">${esc(p.name)}</span>`;
       if (p.plan) html += `<span class="plan">${esc(p.plan)}</span>`;
+      html += meme(ws);
       html += `<span class="sp"></span>`;
       if (U.isActive(p, now)) html += `<span class="state live-t"><i class="live"></i>${esc(tr('w.working'))}</span>`;
       html += `</div>`;

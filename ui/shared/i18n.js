@@ -58,6 +58,9 @@
       'w.noLimits': '한도 정보 없음 · 토큰만 집계 중',
       'w.today': '오늘 <b>{n}</b> 토큰',
       'w.costTitle': 'API 정가 기준 환산 추정치',
+      // Korean-only widget memes (no English entries on purpose: they never show in English)
+      'w.meme.hot': '터질듯한 토큰!?',
+      'w.meme.done': '터져서 없어짐 수고하세요',
       'w.cost': '환산',
       // window chrome
       'tb.settings': '설정',
@@ -70,6 +73,8 @@
       'side.layout': '위젯 레이아웃',
       'side.switch': '<kbd>{k}</kbd> 로 전환',
       'side.noKey': '단축키 없음',
+      'side.github': '깃허브 저장소',
+      'side.donate': '후원하기',
       'layout.strip': '가로형',
       'layout.card': '카드형',
       // pages
@@ -481,6 +486,8 @@
       'side.layout': 'Widget layout',
       'side.switch': '<kbd>{k}</kbd> to switch',
       'side.noKey': 'No shortcut',
+      'side.github': 'GitHub repository',
+      'side.donate': 'Sponsor',
       'layout.strip': 'Strip',
       'layout.card': 'Card',
       'page.overview': 'Overview',

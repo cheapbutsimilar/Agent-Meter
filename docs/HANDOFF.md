@@ -6,7 +6,7 @@
 
 > 새 앱을 Claude Code와 같이 만든다면, 이 파일을 새 저장소의 `docs/HANDOFF.md`로 넣고
 > 첫 메시지에서 "docs/HANDOFF.md의 디자인 시스템과 구조를 따라서 ○○ 앱을 만들어줘"라고 하면 돼요.
-> 원본 코드는 `cheapbutsimilar/agents_usage_monitor`에 있어요. 아래 경로는 모두 그 저장소 기준이에요.
+> 원본 코드는 `cheapbutsimilar/Agent-Meter`에 있어요. 아래 경로는 모두 그 저장소 기준이에요.
 
 ---
 

@@ -7,7 +7,7 @@
 **Claude Code · Codex · Gemini CLI · Antigravity · Grok** 의 한도와 사용량을<br>
 작업표시줄과 바탕화면에서 바로 보는 데스크톱 위젯
 
-[![최신 릴리스](https://img.shields.io/github/v/release/cheapbutsimilar/agents_usage_monitor?style=flat-square&color=F05C1A&label=release)](https://github.com/cheapbutsimilar/agents_usage_monitor/releases/latest)
+[![최신 릴리스](https://img.shields.io/github/v/release/cheapbutsimilar/Agent-Meter?style=flat-square&color=F05C1A&label=release)](https://github.com/cheapbutsimilar/Agent-Meter/releases/latest)
 ![Windows 10 · 11](https://img.shields.io/badge/Windows-10%20%C2%B7%2011-2B2B2B?style=flat-square)
 ![Rust · Tauri 2](https://img.shields.io/badge/Rust-Tauri%202-2B2B2B?style=flat-square&logo=tauri&logoColor=white)
 ![설치 파일 2.3MB](https://img.shields.io/badge/%EC%84%A4%EC%B9%98%20%ED%8C%8C%EC%9D%BC-2.3MB-2B2B2B?style=flat-square)
@@ -15,7 +15,7 @@
 
 [English](README.md) | **한국어**
 
-[**다운로드**](https://github.com/cheapbutsimilar/agents_usage_monitor/releases/latest) &nbsp;·&nbsp;
+[**다운로드**](https://github.com/cheapbutsimilar/Agent-Meter/releases/latest) &nbsp;·&nbsp;
 [기능](#기능) &nbsp;·&nbsp;
 [위젯](#위젯) &nbsp;·&nbsp;
 [대시보드](#대시보드) &nbsp;·&nbsp;
@@ -28,6 +28,8 @@
 여러 AI 코딩 에이전트를 같이 쓰면 **어느 한도가 먼저 바닥날지**, **리셋까지 버틸 수 있을지** 알기 어렵습니다.
 AgentMeter는 각 서비스의 공식 한도 %와 내 컴퓨터의 로그를 모아, 작업표시줄 한 줄이나 작은 카드 하나로 보여줍니다.
 지금 속도면 언제 바닥나는지 계산해서 정말 급할 때만 알려주고, 같은 양을 API로 썼다면 얼마였을지도 원화로 보여줍니다.
+
+> 이 오픈소스 프로젝트는 오차범위 제로, 정 확 한 입니다.
 
 ## 기능
 
@@ -96,7 +98,7 @@ AgentMeter는 각 서비스의 공식 한도 %와 내 컴퓨터의 로그를 모
 
 ## 설치
 
-1. [**최신 릴리스**](https://github.com/cheapbutsimilar/agents_usage_monitor/releases/latest)에서 `AgentMeter_<버전>_x64-setup.exe` 를 내려받아 실행합니다.
+1. [**최신 릴리스**](https://github.com/cheapbutsimilar/Agent-Meter/releases/latest)에서 `AgentMeter_<버전>_x64-setup.exe` 를 내려받아 실행합니다.
 2. "Windows의 PC 보호" 창이 뜨면 **추가 정보 → 실행**을 누릅니다. 코드 서명 인증서가 없는 개인 프로젝트라서 뜨는 경고입니다. 업데이트 파일은 별도의 서명으로 검증합니다.
 3. 관리자 권한 없이 내 계정에만 설치됩니다. 처음 실행하면 대시보드가 열리고, 화면 오른쪽 아래에 위젯이, 트레이에 게이지 아이콘이 생깁니다.
 4. Claude Code · Codex · Gemini CLI · Antigravity CLI 에 한 번이라도 로그인돼 있으면 바로 한도가 보입니다. 아니라면 대시보드 개요나 에이전트 페이지의 **원클릭 연결**을 누르세요. CLI가 없으면 설치하고 로그인 화면까지 열어 줍니다.
@@ -210,11 +212,11 @@ Rust + [Tauri 2](https://tauri.app) 앱이고, UI는 빌드 단계 없는 HTML �
 [Git](https://git-scm.com)과 [Rust](https://rustup.rs)(stable)가 필요합니다. Linux는 `libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libxdo-dev` 도 필요합니다.
 
 ```bash
-git clone -b main https://github.com/cheapbutsimilar/agents_usage_monitor
+git clone -b main https://github.com/cheapbutsimilar/Agent-Meter
 ```
 
 ```bash
-cd agents_usage_monitor && cargo run --release -p agentmeter
+cd Agent-Meter && cargo run --release -p agentmeter
 ```
 
 설치 파일까지 만들려면 `cargo install tauri-cli --version "^2" --locked` 후 저장소 폴더에서 `cargo tauri build` 를 실행하세요.

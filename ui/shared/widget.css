@@ -321,3 +321,64 @@
 .w.floating .upd.stale {
   color: var(--warn-text, #ffb08a);
 }
+
+/* Korean-only meme bubble (render.js meme()): nearly-out / out-of-limit quip */
+.w .meme {
+  display: inline-block;
+  white-space: nowrap;
+  font-weight: 700;
+  color: var(--on-accent, #fff);
+  background: var(--accent);
+  border-radius: 6px;
+  pointer-events: none;
+  position: relative;
+}
+.w .meme.done {
+  background: var(--meter-crit, #ff453a);
+}
+.w .meme::before {
+  content: '';
+  position: absolute;
+  border: 3px solid transparent;
+}
+/* strip: floats over the top of the agent's logo so the 40px row never grows or shifts */
+.w.taskbar .prov.has-meme {
+  position: relative;
+}
+.w.taskbar .meme {
+  position: absolute;
+  top: 0;
+  left: 12px;
+  z-index: 2;
+  font-size: 9px;
+  line-height: 10px;
+  height: 10px;
+  padding: 0 4px;
+  letter-spacing: -0.01em;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+}
+.w.taskbar .meme::before {
+  left: -3px;
+  bottom: -1px;
+  border-right-color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+.w.taskbar .meme.done::before {
+  border-right-color: var(--meter-crit, #ff453a);
+  border-bottom-color: var(--meter-crit, #ff453a);
+}
+/* card: sits next to the agent's name in the header row */
+.w.floating .meme {
+  font-size: 10px;
+  line-height: 16px;
+  padding: 0 6px;
+  margin-left: 4px;
+}
+.w.floating .meme::before {
+  left: -6px;
+  top: 5px;
+  border-right-color: var(--accent);
+}
+.w.floating .meme.done::before {
+  border-right-color: var(--meter-crit, #ff453a);
+}
