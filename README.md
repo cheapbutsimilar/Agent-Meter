@@ -244,18 +244,7 @@ scripts/           mock-api.js(데모 데이터), preview.js(README 이미지), 
 같은 디자인과 구조로 다른 앱을 만들 때는 [docs/HANDOFF.md](docs/HANDOFF.md)를 참고하세요.
 </details>
 
-<details>
-<summary><b>릴리스와 자동 업데이트 (관리자용)</b></summary>
-
-이 브랜치에 코드를 푸시하면 GitHub Actions의 `Release` 워크플로가 서명된 설치 파일을 `v0.2.<실행 번호>` 릴리스로 올리고,
-설치된 앱은 `latest.json` 을 보고 업데이트합니다. 문서(`*.md`, `docs/`)만 바뀐 푸시는 릴리스하지 않습니다.
-
-패치노트는 [CHANGELOG.md](CHANGELOG.md)의 맨 위 `## 다음 버전` 아래에 적습니다. 워크플로가 빌드할 때 그 제목을 실제 버전과 날짜로 바꿔 앱에 넣고,
-그 내용을 릴리스 설명으로 올립니다. 업데이트 창에 보이는 "이번 업데이트" 내용이 바로 이 릴리스 설명입니다.
-
-저장소 Secrets 에 업데이트 서명 개인 키를 `TAURI_SIGNING_PRIVATE_KEY` 로 한 번 등록해야 합니다. 키가 없으면 릴리스 단계를 건너뜁니다.
-공개 키는 앱에 들어 있으므로 **개인 키를 잃어버리면 이미 설치된 앱은 더 이상 자동 업데이트를 받을 수 없습니다.** 키는 저장소에 커밋하지 마세요.
-</details>
+릴리스 절차와 자동 업데이트 서명 키 설정은 [docs/RELEASING.md](docs/RELEASING.md)에 있습니다.
 
 ## 고지
 
@@ -264,4 +253,4 @@ scripts/           mock-api.js(데모 데이터), preview.js(README 이미지), 
   로고 SVG는 [@lobehub/icons](https://github.com/lobehub/lobe-icons)(MIT)에서 가져왔습니다.
 - 디자인: 베이스 `#2B2B2B`, 키 컬러 `#F05C1A`. 막대는 평소 밝은 회색이고, 첫 번째 임계값부터 주황, 두 번째부터 빨강으로 바뀌어 색만으로 상태를 구분하지 않도록 아이콘을 함께 씁니다.
 
-<div align="center"><sub>MIT License</sub></div>
+<div align="center"><sub><a href="LICENSE">MIT License</a></sub></div>
