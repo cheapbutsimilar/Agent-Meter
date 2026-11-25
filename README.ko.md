@@ -65,14 +65,14 @@ AgentMeter는 각 서비스의 공식 한도 %와 내 컴퓨터의 로그를 모
 
 <p align="center"><img src="docs/screenshots/widget-card.png" alt="카드형 위젯" width="60%"></p>
 
-### 모양
+### 테마
 
-대시보드 → **모양**에서 테마를 바꿀 수 있습니다. 모든 값은 정해진 범위 안에서만 바뀌어서 화면이 깨지지 않습니다.
+대시보드 → **테마**에서 프리셋과 색을 바꿀 수 있습니다. 모든 값은 정해진 범위 안에서만 바뀌어서 화면이 깨지지 않습니다.
 
 <img src="docs/screenshots/themes.png" alt="AgentMeter · 노르딕 · 미드나잇 · 로즈 테마" width="100%">
 
 - **모드**: 시스템 · 라이트 · 다크 (시스템이면 Windows 설정을 따라감)
-- **테마**: AgentMeter, 미드나잇, 노르딕, 포레스트, 그래파이트, 로즈 (각각 라이트 · 다크)
+- **프리셋**: AgentMeter, 미드나잇, 노르딕, 포레스트, 그래파이트, 로즈 (각각 라이트 · 다크)
 - **색**: 강조색 · 배경색 · 글자색을 직접 지정 (글자 대비가 4.5:1보다 낮으면 경고)
 - **크기**: 글꼴, 대시보드 배율 90–125%, 위젯 불투명도 · 크기 · 막대 길이 · 카드 폭 · 모서리
 - **언어**: 한국어 · English. 기본은 시스템 언어를 따르고, 대시보드 → 일반 → 언어에서 바꿀 수 있습니다
@@ -87,7 +87,7 @@ AgentMeter는 각 서비스의 공식 한도 %와 내 컴퓨터의 로그를 모
 <td width="50%"><img src="docs/screenshots/dashboard-display.png" alt="위젯 표시"><p align="center"><b>위젯 표시</b> · 미리보기를 보며 항목 켜고 끄기</p></td>
 </tr>
 <tr>
-<td><img src="docs/screenshots/dashboard-appearance.png" alt="모양"><p align="center"><b>모양</b> · 테마, 색, 글꼴, 크기</p></td>
+<td><img src="docs/screenshots/dashboard-appearance.png" alt="테마"><p align="center"><b>테마</b> · 프리셋, 색, 글꼴, 크기</p></td>
 <td><img src="docs/screenshots/dashboard-agents.png" alt="에이전트"><p align="center"><b>에이전트</b> · 로그인 연결, 공식 API, 표시할 한도</p></td>
 </tr>
 <tr>

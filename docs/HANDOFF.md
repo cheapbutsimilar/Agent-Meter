@@ -121,9 +121,9 @@ const seg = (name, options, value) => `<div class="seg">${options.map(([v, l]) =
 | `.empty` | 빈 상태 안내 문장 |
 | `.toast` | 아래쪽 짧은 확인 메시지, 2.4초 |
 | `.note`, `.tip-line`, `.warn`, `.err` | 안내 / 팁 / 경고 / 오류 문장 |
-| `.mode-tiles`, `.swatches`, `.colorf`, `.rangef` | 모양(테마) 설정 화면 전용 |
+| `.mode-tiles`, `.swatches`, `.colorf`, `.rangef` | 테마 설정 화면 전용 |
 
-**대시보드 페이지 구성**(참고용): 개요 · 분석 · 위젯 표시 · 모양 · 연결(에이전트) · 알림·단축키 · 일반.
+**대시보드 페이지 구성**(참고용): 개요 · 분석 · 위젯 표시 · 테마 · 연결(에이전트) · 알림·단축키 · 일반.
 "일반"에는 시스템 시작 시 자동 실행, 업데이트(지금 확인 / 자동 업데이트), 통화·환율, 데이터 폴더 열기가 있어요.
 
 ### 2.6 위젯 (`ui/shared/widget.css`, `ui/shared/render.js`, `ui/widget/`)
