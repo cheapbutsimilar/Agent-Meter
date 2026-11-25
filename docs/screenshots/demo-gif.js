@@ -1,6 +1,8 @@
 #!/usr/bin/env node
-/* README demo GIF: the docked strip next to the taskbar clock, PageUp switching it to the card
- * and back, and the limits and burn-down forecast moving as time passes (a time-lapse).
+/* README demo GIF: the strip docked next to the taskbar clock with all four agents, a camera that
+ * zooms in about 2.4x and pans along it to the clock so every number reads, PageUp switching it to
+ * the card and back, and the limits, reset countdowns, pace ticks and run-out forecast moving as
+ * time passes (a time-lapse).
  * A reproduction, not a screen recording: the real widget UI (ui/widget) is rendered with the
  * demo data of scripts/mock-api.js, frame by frame, and the frames are joined with ffmpeg.
  *   node docs/screenshots/demo-gif.js        → docs/screenshots/demo.gif, docs/screenshots/en/demo.gif
@@ -19,21 +21,23 @@ const OUT = path.join(ROOT, 'docs', 'screenshots');
 const MOCK = fs.readFileSync(path.join(ROOT, 'scripts', 'mock-api.js'), 'utf8');
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'application/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.md': 'text/plain; charset=utf-8' };
 
-const VIEW = { width: 860, height: 480 }; // CSS px; captured at 1.35x → 1161 x 648
-const SCALE = 1.35;
+const VIEW = { width: 880, height: 440 }; // CSS px; captured at 1.3636x → 1200 x 600
+const SCALE = 1200 / 880;
 
 const TEXT = {
   ko: {
-    a: ['작업표시줄 시계 옆에 딱 붙어서', 'Claude · Codex 한도를 한눈에 보여줘요'],
-    c: ['PageUp 한 번이면 카드형으로', '남은 양 · 리셋까지 남은 시간 · 소진 예측'],
-    d: ['다시 PageUp, 가로형으로 돌아가요', '쓰는 동안 숫자가 실시간으로 따라와요'],
+    a: ['작업표시줄 시계 옆에 딱 붙어서', 'Claude · Codex · Gemini · Grok 한도를 한 줄로'],
+    b: ['남은 양 · 리셋까지 남은 시간 · 소진 예측', '쓰는 동안 숫자와 막대가 실시간으로 따라와요'],
+    c: ['PageUp 한 번이면 카드형으로', '토큰 · 비용까지 자세히'],
+    d: ['다시 PageUp, 가로형으로', '평소엔 시계 옆에 조용히 붙어 있어요'],
     clock: (h, m) => `${h < 12 ? '오전' : '오후'} ${((h + 11) % 12) + 1}:${String(m).padStart(2, '0')}<br>2026-11-25`,
     lapse: '타임랩스',
   },
   en: {
-    a: ['Docked right next to the taskbar clock', 'Claude and Codex limits at a glance'],
-    c: ['Press PageUp for the card', 'Remaining, time to reset, burn-down forecast'],
-    d: ['PageUp again: back to the strip', 'The numbers follow along as you work'],
+    a: ['Docked right next to the taskbar clock', 'Claude, Codex, Gemini and Grok in one line'],
+    b: ['Remaining, time to reset, run-out forecast', 'Numbers and bars follow along as you work'],
+    c: ['Press PageUp for the card', 'With tokens and cost in detail'],
+    d: ['PageUp again: back to the strip', 'Quietly docked next to the clock'],
     clock: (h, m) => `${((h + 11) % 12) + 1}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}<br>11/25/2026`,
     lapse: 'time-lapse',
   },
@@ -46,7 +50,7 @@ const ICONS = {
 };
 
 function stage(lang) {
-  const q = `&lang=${lang}&agents=claude,codex`;
+  const q = `&lang=${lang}`;
   return `<!doctype html><html lang="${lang}"><head><meta charset="utf-8"><style>
   * { box-sizing: border-box; }
   html, body { margin: 0; width: ${VIEW.width}px; height: ${VIEW.height}px; overflow: hidden; }
@@ -54,34 +58,37 @@ function stage(lang) {
          background: radial-gradient(700px 420px at 0% 0%, #3a2418, transparent 70%), linear-gradient(160deg, #1f2024, #17181b);
          -webkit-font-smoothing: antialiased; }
   iframe { border: 0; display: block; background: transparent; position: absolute; }
-  .cap { position: absolute; left: 40px; top: 40px; transition: none; }
+  .cap { position: absolute; left: 40px; top: 40px; z-index: 2; }
   .cap .brand { display: flex; align-items: center; gap: 9px; font-size: 14px; font-weight: 700; color: #cfcfcf; letter-spacing: .01em; }
   .cap .brand i { width: 16px; height: 16px; border-radius: 5px; background: #F05C1A; box-shadow: inset 0 0 0 4px rgba(0,0,0,.18); }
   .cap h1 { margin: 18px 0 0; font-size: 30px; line-height: 1.2; font-weight: 800; letter-spacing: -.02em; }
   .cap p { margin: 10px 0 0; font-size: 17px; color: #b9b9b9; font-weight: 500; }
-  .key { position: absolute; left: 40px; top: 196px; display: flex; align-items: center; gap: 12px; opacity: 0; }
+  .key { position: absolute; z-index: 2; left: 40px; top: 180px; display: flex; align-items: center; gap: 12px; opacity: 0; }
   .key b { display: inline-block; padding: 9px 14px 11px; border-radius: 9px; font-size: 17px; font-weight: 700; color: #f5f5f5;
            background: linear-gradient(#3b3d42, #2c2e32); border: 1px solid #55585e; box-shadow: 0 4px 0 #18191b, 0 8px 18px rgba(0,0,0,.45); }
   .key.down b { transform: translateY(3px); box-shadow: 0 1px 0 #18191b, 0 3px 8px rgba(0,0,0,.45); background: linear-gradient(#4a3226, #3a281f); border-color: #F05C1A; }
-  .lapse { position: absolute; right: 22px; top: 18px; font-size: 12px; font-weight: 600; color: #9a9a9a; display: flex; gap: 6px; align-items: center; }
+  .lapse { position: absolute; z-index: 2; left: 42px; top: 252px; font-size: 12px; font-weight: 600; color: #9a9a9a; display: flex; gap: 6px; align-items: center; }
   .lapse i { width: 7px; height: 7px; border-radius: 50%; background: #e5484d; }
-  .bar { position: absolute; left: 0; right: 0; bottom: 0; height: 48px; background: rgba(32,32,34,.96); border-top: 1px solid rgba(255,255,255,.08); }
-  .bar .apps { position: absolute; left: 22px; top: 8px; display: flex; gap: 6px; }
+  .bar { position: absolute; left: -3000px; right: -3000px; bottom: 0; height: 48px; background: rgba(32,32,34,.96); border-top: 1px solid rgba(255,255,255,.08); }
+  .bar .apps { position: absolute; left: 3022px; top: 8px; display: flex; gap: 6px; }
   .bar .apps i { width: 32px; height: 32px; border-radius: 7px; background: rgba(255,255,255,.08); }
   .bar .apps i:nth-child(2) { background: rgba(255,255,255,.16); }
-  .tray { position: absolute; right: 12px; top: 0; height: 48px; display: flex; align-items: center; gap: 4px; }
+  .tray { position: absolute; right: 3008px; top: 0; height: 48px; display: flex; align-items: center; gap: 4px; }
   .tray .chev { font-size: 12px; color: #d8d8d8; padding: 0 8px; transform: scaleX(1.3); }
-  .tray .ic { display: flex; gap: 10px; padding: 7px 10px; border-radius: 6px; }
-  .tray .clock { font-size: 12px; line-height: 1.4; text-align: right; color: #e6e6e6; padding: 0 6px 0 8px; white-space: nowrap; }
+  .tray .ic { display: flex; gap: 10px; padding: 7px 6px; border-radius: 6px; }
+  .tray .clock { font-size: 12px; line-height: 1.4; text-align: right; color: #e6e6e6; padding: 0 4px 0 6px; white-space: nowrap; }
+  #world { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
   .card { filter: drop-shadow(0 18px 34px rgba(0,0,0,.55)); }
   </style></head><body>
   <div class="cap"><div class="brand"><i></i>AgentMeter</div><h1 id="h1"></h1><p id="p"></p></div>
   <div class="key" id="key"><b>PageUp</b></div>
   <div class="lapse"><i></i>${TEXT[lang].lapse}</div>
-  <iframe id="card" class="card" src="/ui/widget/index.html?mode=floating${q}" width="312" height="380"></iframe>
+  <div id="world">
+  <iframe id="card" class="card" src="/ui/widget/index.html?mode=floating${q}" width="312" height="560"></iframe>
   <div class="bar"><div class="apps"><i></i><i></i><i></i></div>
-    <iframe id="strip" src="/ui/widget/index.html?mode=taskbar&tb=48${q}" width="700" height="48"></iframe>
-    <div class="tray" id="tray"><span class="chev">^</span><span class="ic">${ICONS.wifi}${ICONS.vol}${ICONS.bat}</span><span class="clock" id="clock"></span></div>
+    <iframe id="strip" src="/ui/widget/index.html?mode=taskbar&tb=48${q}" width="900" height="48"></iframe>
+    <div class="tray" id="tray"><span class="ic">${ICONS.wifi}${ICONS.vol}${ICONS.bat}</span><span class="clock" id="clock"></span></div>
+  </div>
   </div>
   <script>
   addEventListener('message', (e) => {
@@ -127,18 +134,36 @@ function stageApi() {
   window.layout = () => {
     const strip = $('strip');
     const tray = $('tray');
-    const trayW = tray.getBoundingClientRect().width;
-    strip.style.left = `${innerWidth - 12 - trayW - 8 - strip.width}px`;
-    strip.style.top = '0px';
     const card = $('card');
-    card.style.left = `${innerWidth - 16 - card.width}px`;
-    card.style.top = `${innerHeight - 48 - 14 - card.height}px`;
+    const trayW = tray.offsetWidth; // untransformed, whatever the camera is doing
+    // the world: three app buttons, the strip, the tray; as tall as the frame's shape asks
+    const sw = Number(strip.width);
+    const W = 150 + sw + 6 + trayW + 8;
+    const H = (W * innerHeight) / innerWidth;
+    $('world').style.width = `${W}px`;
+    $('world').style.height = `${H}px`;
+    const left = W - 8 - trayW - 6 - sw;
+    strip.style.left = `${3000 + left}px`; // the taskbar runs 3000px past the world on both sides
+    strip.style.top = '0px';
+    card.style.left = `${W - 16 - Number(card.width)}px`;
+    card.style.top = `${H - 48 - 14 - Number(card.height)}px`;
+    // cameras as the world's visible left edge and scale, anchored to the bottom
+    const Z = 2.4;
+    // the card shot: the whole card and the taskbar, anchored bottom right
+    const sc = Math.min(innerWidth / W, innerHeight / (Number(card.height) + 48 + 14 + 28));
+    window.CAMS = {
+      wide: { x: 0, s: innerWidth / W },
+      zl: { x: left - 10, s: Z }, // zoomed on the start of the strip
+      zr: { x: W - innerWidth / Z, s: Z }, // zoomed on its end and the clock
+      card: { x: W - innerWidth / sc, s: sc },
+    };
+    window.WORLD = { W, H, Z, stripW: sw };
   };
   const frames = () => ['strip', 'card'].map((id) => $(id).contentWindow.agentMeter);
   window.demoInit = async () => {
     const [strip] = frames();
     // the strip without CPU/RAM so the two agents fit the scene
-    await strip.setSettings({ taskbar: { system: false } });
+    await strip.setSettings({ taskbar: { system: false, pace: true } });
     for (const api of frames()) {
       api.__patchProvider('claude', (p) => (p.windows = p.windows.filter((w) => w.id === '5h' || w.id === '7d')));
     }
@@ -176,12 +201,20 @@ function stageApi() {
         p.tokens.costToday = 4.1 + t * 0.05;
         p.tokens.lastEventAt = now - 8000;
       }
+      if (p.id === 'gemini') {
+        const a = w('pro');
+        a.usedPercent = 52 + (6 / 60) * t;
+        a.resetsAt = now + 7 * HOUR + 5 * MIN - t * MIN;
+        a.elapsed = 1 - (a.resetsAt - now) / (1440 * MIN);
+        a.exhaustBeforeReset = false;
+        p.tokens.lastEventAt = now - 15000;
+      }
+      if (p.id === 'grok') {
+        w('5h').usedPercent = 13 + (4 / 60) * t;
+      }
       p.limitsAt = now - 20000;
     };
-    for (const api of frames()) {
-      api.__patchProvider('claude', patch);
-      api.__patchProvider('codex', patch);
-    }
+    for (const api of frames()) for (const id of ['claude', 'codex', 'gemini', 'grok']) api.__patchProvider(id, patch);
     $('h1').textContent = f.cap[0];
     $('p').textContent = f.cap[1];
     $('clock').innerHTML = f.clock;
@@ -197,10 +230,20 @@ function stageApi() {
     card.style.opacity = String(k);
     card.style.transform = `translateY(${(1 - k) * 36}px) scale(${0.94 + 0.06 * k})`;
     card.style.transformOrigin = '100% 100%';
+    // camera: between two shots, moving the visible rectangle's left edge and width
+    const A = CAMS[f.cam[0]];
+    const B = CAMS[f.cam[1] || f.cam[0]];
+    const c = f.cam[2] == null ? 0 : f.cam[2];
+    const w = innerWidth / A.s + (innerWidth / B.s - innerWidth / A.s) * c;
+    const x = A.x + (B.x - A.x) * c;
+    const s = innerWidth / w;
+    const y = WORLD.H - innerHeight / s;
+    $('world').style.transform = `scale(${s}) translate(${-x}px, ${-y}px)`;
   };
 }
 
-/** The frame list: {t, mode, key, down, cap, clock, ms}. */
+/** The frame list: {t, mode, cam, key, down, cap, clock, ms}; about 12 s, the strip most of it.
+ * cam: [from, to, k] between the shots wide / zl / zr. */
 function timeline(T) {
   const out = [];
   const ease = (x) => (x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2);
@@ -208,24 +251,32 @@ function timeline(T) {
     const m = 15 * 60 + 42 + Math.floor(t);
     return T.clock(Math.floor(m / 60), m % 60);
   };
-  const push = (o) => out.push({ key: 0, down: false, ...o, clock: clock(o.t) });
+  const push = (o) => out.push({ key: 0, down: false, mode: 0, ...o, clock: clock(o.t) });
+  const move = (n, ms, from, to, o, dt = 0) => {
+    for (let i = 1; i <= n; i++) push({ ...o(ease(i / n), i), t: (t += dt), cam: [from, to, ease(i / n)], ms });
+  };
   let t = 0;
-  // A: the docked strip, limits moving
-  for (let i = 0; i < 30; i++) push({ t: (t += 0.6), mode: 0, cap: T.a, ms: 130 });
-  push({ t, mode: 0, cap: T.a, ms: 600 });
-  // PageUp
-  push({ t, mode: 0, cap: T.c, key: 1, ms: 380 });
-  push({ t, mode: 0, cap: T.c, key: 1, down: true, ms: 160 });
-  for (let i = 1; i <= 9; i++) push({ t, mode: ease(i / 9), cap: T.c, key: 1, down: i < 4, ms: 40 });
-  // C: the card, the 5-hour limit runs low and the forecast moves closer
-  for (let i = 0; i < 36; i++) push({ t: (t += 0.9), mode: 1, cap: T.c, key: Math.max(0, 1 - i / 6), ms: 130 });
-  push({ t, mode: 1, cap: T.c, ms: 900 });
-  // PageUp again
-  push({ t, mode: 1, cap: T.d, key: 1, ms: 380 });
-  push({ t, mode: 1, cap: T.d, key: 1, down: true, ms: 160 });
-  for (let i = 1; i <= 9; i++) push({ t, mode: 1 - ease(i / 9), cap: T.d, key: 1, down: i < 4, ms: 40 });
-  for (let i = 0; i < 14; i++) push({ t: (t += 0.4), mode: 0, cap: T.d, key: Math.max(0, 1 - i / 6), ms: 130 });
-  push({ t, mode: 0, cap: T.d, ms: 1600 });
+  // ① wide shot: the strip docked next to the clock
+  for (let i = 0; i < 8; i++) push({ t: (t += 0.4), cam: ['wide'], cap: T.a, ms: 140 });
+  // zoom in on the start of the strip
+  move(14, 65, 'wide', 'zl', () => ({ cap: T.a }), 0.2);
+  // ② zoomed: pan along the strip to the clock while the limits move
+  for (let i = 0; i < 5; i++) push({ t: (t += 0.9), cam: ['zl'], cap: T.b, ms: 130 });
+  move(30, 100, 'zl', 'zr', () => ({ cap: T.b }), 0.9);
+  for (let i = 0; i < 5; i++) push({ t: (t += 0.9), cam: ['zr'], cap: T.b, ms: 130 });
+  // ③ PageUp: zoom out while the strip sinks and the card rises
+  push({ t, cam: ['zr'], cap: T.c, key: 1, ms: 300 });
+  push({ t, cam: ['zr'], cap: T.c, key: 1, down: true, ms: 120 });
+  move(12, 50, 'zr', 'card', (k, i) => ({ mode: k, cap: T.c, key: 1, down: i < 4 }));
+  for (let i = 0; i < 11; i++) push({ t: (t += 0.8), cam: ['card'], mode: 1, cap: T.c, key: Math.max(0, 1 - i / 5), ms: 130 });
+  // ④ PageUp again: back to the strip, zoomed on the clock end, then pan back along it
+  push({ t, cam: ['card'], mode: 1, cap: T.d, key: 1, ms: 300 });
+  push({ t, cam: ['card'], mode: 1, cap: T.d, key: 1, down: true, ms: 120 });
+  move(12, 50, 'card', 'zr', (k, i) => ({ mode: 1 - k, cap: T.d, key: 1, down: i < 4 }));
+  move(16, 100, 'zr', 'zl', (k, i) => ({ cap: T.d, key: Math.max(0, 1 - i / 5) }), 0.6);
+  push({ t, cam: ['zl'], cap: T.d, ms: 300 });
+  // zoom back out so the loop starts where it ends
+  move(10, 60, 'zl', 'wide', () => ({ cap: T.d }));
   return out;
 }
 
@@ -260,6 +311,7 @@ async function main() {
     // the concat demuxer needs the last file once more for its duration to count
     list += `file '${path.join(tmp, `f${String(frames.length - 1).padStart(4, '0')}.png`)}'\n`;
     fs.writeFileSync(path.join(tmp, 'list.txt'), list);
+    const { Z: zoom, stripW } = await p.evaluate(() => window.WORLD);
     await p.close();
     const dir = path.join(OUT, sub);
     fs.mkdirSync(dir, { recursive: true });
@@ -269,7 +321,10 @@ async function main() {
       '-filter_complex', '[0:v]split[a][b];[a]palettegen=max_colors=160:stats_mode=full[p];[b][p]paletteuse=dither=sierra2_4a:diff_mode=rectangle',
       '-fps_mode', 'vfr', '-loop', '0', gif,
     ]);
-    console.log('saved', path.relative(ROOT, gif), `${(fs.statSync(gif).size / 1048576).toFixed(2)} MB`, `${frames.length} frames`);
+    const total = frames.reduce((a, f) => a + f.ms, 0);
+    const strip = frames.filter((f) => f.mode < 0.5).reduce((a, f) => a + f.ms, 0);
+    console.log('saved', path.relative(ROOT, gif), `${(fs.statSync(gif).size / 1048576).toFixed(2)} MB`, `${frames.length} frames`,
+      `${(total / 1000).toFixed(1)} s (strip ${Math.round((strip / total) * 100)}%)`, `zoom ${zoom}x, strip text at ${(zoom * SCALE).toFixed(2)}x its real size, zoomed strip ${Math.round(stripW * zoom * SCALE)} px across the pan`);
     fs.rmSync(tmp, { recursive: true, force: true });
   }
   await browser.close();
