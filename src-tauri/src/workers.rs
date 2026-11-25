@@ -2,6 +2,7 @@
 //! widget on top of the taskbar.
 
 use crate::http::UreqHttp;
+use crate::i18n::{fmt_left, pick};
 use crate::state::{lock, AlertMemo, AppState, UsageCmd};
 use crate::windows::{keep_on_top, layout_widget, screen_geometry, Rect, WIDGET};
 use agentmeter_core::time::now_ms;
@@ -131,6 +132,7 @@ fn check_alerts(app: &AppHandle, snap: &Snapshot) {
     let st = app.state::<AppState>();
     let s = st.settings();
     let now = now_ms();
+    let en = crate::i18n::en(app);
     let first = lock(&st.alerts).is_empty();
     let saved: serde_json::Map<String, serde_json::Value> = if first {
         crate::state::read_json(&forecast_memo_path(app))
@@ -162,25 +164,35 @@ fn check_alerts(app: &AppHandle, snap: &Snapshot) {
                 if level > prev.level {
                     let t = s.alert_thresholds[level - 1];
                     let _ = app.emit("event", json!({ "type": "alert", "provider": p.id, "label": w.label, "percent": w.used_percent, "threshold": t }));
-                    let body = match w.resets_at {
-                        Some(r) => format!("{} 후 리셋", crate::fmt_left(r - now)),
-                        None => "사용량을 확인하세요".into(),
+                    let left = |ms| fmt_left(ms, en);
+                    let body = match (w.resets_at, en) {
+                        (Some(r), false) => format!("{} 후 리셋", left(r - now)),
+                        (Some(r), true) => format!("Resets in {}", left(r - now)),
+                        (None, false) => "사용량을 확인하세요".into(),
+                        (None, true) => "Check your usage".into(),
                     };
-                    notify(
-                        app,
-                        &format!("{} {} {}% 사용", p.name, w.label, w.used_percent.round()),
-                        &body,
-                    );
+                    let pct = w.used_percent.round();
+                    let title = if en {
+                        format!("{} {} {pct}% used", p.name, w.label)
+                    } else {
+                        format!("{} {} {pct}% 사용", p.name, w.label)
+                    };
+                    notify(app, &title, &body);
                 }
                 if s.notify_reset && prev.pct >= 30.0 && w.used_percent <= prev.pct - 30.0 {
                     let _ = app.emit(
                         "event",
                         json!({ "type": "reset", "provider": p.id, "label": w.label }),
                     );
+                    let title = if en {
+                        format!("{} {} reset", p.name, w.label)
+                    } else {
+                        format!("{} {} 리셋됨", p.name, w.label)
+                    };
                     notify(
                         app,
-                        &format!("{} {} 리셋됨", p.name, w.label),
-                        "다시 넉넉하게 쓸 수 있어요",
+                        &title,
+                        pick(en, "다시 넉넉하게 쓸 수 있어요", "Plenty of room again"),
                     );
                 }
             }
@@ -193,15 +205,19 @@ fn check_alerts(app: &AppHandle, snap: &Snapshot) {
                 if forecast_due(w.used_percent, eta, reset, now, memo.forecast_for) {
                     memo.forecast_for = Some(reset);
                     forecast_changed = true;
-                    notify(
-                        app,
-                        &format!("{} {} 곧 소진", p.name, w.label),
-                        &format!(
-                            "지금 속도면 {} 후 한도 도달 · 리셋은 {} 후",
-                            crate::fmt_left(eta - now),
-                            crate::fmt_left(reset - now)
-                        ),
-                    );
+                    let (runs, resets) = (fmt_left(eta - now, en), fmt_left(reset - now, en));
+                    let (title, body) = if en {
+                        (
+                            format!("{} {} running out", p.name, w.label),
+                            format!("At this pace it runs out in {runs} · resets in {resets}"),
+                        )
+                    } else {
+                        (
+                            format!("{} {} 곧 소진", p.name, w.label),
+                            format!("지금 속도면 {runs} 후 한도 도달 · 리셋은 {resets} 후"),
+                        )
+                    };
+                    notify(app, &title, &body);
                 }
             }
             lock(&st.alerts).insert(key, memo);

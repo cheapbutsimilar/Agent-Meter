@@ -35,16 +35,32 @@ fn hotkey_hint(accel: &str) -> String {
 
 pub fn tray_menu(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
     let s = app.state::<AppState>().settings();
+    let en = crate::i18n::en(app);
+    let l = |ko, english| crate::i18n::pick(en, ko, english);
     let mut b = MenuBuilder::new(app)
-        .item(&item(app, "page:overview", "대시보드 열기")?)
+        .item(&item(
+            app,
+            "page:overview",
+            l("대시보드 열기", "Open dashboard"),
+        )?)
         .separator()
-        .item(&check(app, "mode:taskbar", "가로형", s.is_strip())?)
-        .item(&check(app, "mode:floating", "카드형", !s.is_strip())?);
+        .item(&check(
+            app,
+            "mode:taskbar",
+            l("가로형", "Strip"),
+            s.is_strip(),
+        )?)
+        .item(&check(
+            app,
+            "mode:floating",
+            l("카드형", "Card"),
+            !s.is_strip(),
+        )?);
     if s.is_strip() {
         b = b.item(&check(
             app,
             "toggle:docked",
-            "작업표시줄에 붙이기",
+            l("작업표시줄에 붙이기", "Dock to taskbar"),
             s.docked,
         )?);
     }
@@ -52,25 +68,31 @@ pub fn tray_menu(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
         .item(&check(
             app,
             "toggle:widgetVisible",
-            "위젯 표시",
+            l("위젯 표시", "Show widget"),
             s.widget_visible,
         )?)
         .separator()
-        .item(&item(app, "refresh", "지금 새로고침")?)
-        .item(&item(app, "quit", "종료")?)
+        .item(&item(app, "refresh", l("지금 새로고침", "Refresh now"))?)
+        .item(&item(app, "quit", l("종료", "Quit"))?)
         .build()
 }
 
 pub fn widget_menu(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
     let s = app.state::<AppState>().settings();
+    let en = crate::i18n::en(app);
+    let l = |ko, english| crate::i18n::pick(en, ko, english);
     let mode_label = if s.is_strip() {
-        "카드형으로 전환"
+        l("카드형으로 전환", "Switch to card")
     } else {
-        "가로형으로 전환"
+        l("가로형으로 전환", "Switch to strip")
     };
     let mut b = MenuBuilder::new(app)
-        .item(&item(app, "page:overview", "대시보드")?)
-        .item(&item(app, "page:display", "표시 설정")?)
+        .item(&item(app, "page:overview", l("대시보드", "Dashboard"))?)
+        .item(&item(
+            app,
+            "page:display",
+            l("표시 설정", "Widget settings"),
+        )?)
         .separator()
         .item(&item(
             app,
@@ -80,14 +102,14 @@ pub fn widget_menu(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
         .item(&check(
             app,
             "toggle:lockPosition",
-            "위치 고정",
+            l("위치 고정", "Lock position"),
             s.lock_position,
         )?);
     if s.is_strip() {
         b = b.item(&check(
             app,
             "toggle:docked",
-            "작업표시줄에 붙이기",
+            l("작업표시줄에 붙이기", "Dock to taskbar"),
             s.docked,
         )?);
     }
@@ -95,24 +117,28 @@ pub fn widget_menu(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
         b = b.item(&check(
             app,
             "toggle:alwaysOnTop",
-            "항상 위에",
+            l("항상 위에", "Always on top"),
             s.always_on_top,
         )?);
     }
     b.item(&check(
         app,
         "value:remaining",
-        "남은 양으로 표시",
+        l("남은 양으로 표시", "Show remaining"),
         s.value_mode == "remaining",
     )?)
-    .item(&item(app, "refresh", "지금 새로고침")?)
+    .item(&item(app, "refresh", l("지금 새로고침", "Refresh now"))?)
     .separator()
     .item(&item(
         app,
         "hide",
-        &format!("위젯 숨기기{}", hotkey_hint(&s.hotkey_visible)),
+        &format!(
+            "{}{}",
+            l("위젯 숨기기", "Hide widget"),
+            hotkey_hint(&s.hotkey_visible)
+        ),
     )?)
-    .item(&item(app, "quit", "종료")?)
+    .item(&item(app, "quit", l("종료", "Quit"))?)
     .build()
 }
 

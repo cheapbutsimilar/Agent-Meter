@@ -167,8 +167,12 @@ pub struct Settings {
     pub value_mode: String,
     /// "relative" (2h 13m) or "clock" (14:30).
     pub reset_format: String,
-    /// How API-equivalent costs are shown: "usd", "krw" or "both".
+    /// How API-equivalent costs are shown: "usd", "krw", "both", or "auto" (both when the
+    /// UI is Korean, dollars otherwise; the default for fresh installs).
     pub currency: String,
+    /// UI language: "auto" (the system language; anything but Korean shows English),
+    /// "ko" or "en".
+    pub language: String,
     /// Won per dollar; 0 = use the fetched rate.
     pub krw_rate: f64,
     pub taskbar: DisplayOptions,
@@ -233,7 +237,8 @@ impl Default for Settings {
             hotkey_dashboard: String::new(),
             value_mode: "remaining".into(),
             reset_format: "relative".into(),
-            currency: "both".into(),
+            currency: "auto".into(),
+            language: "auto".into(),
             krw_rate: 0.0,
             taskbar: DisplayOptions::taskbar(),
             floating: DisplayOptions::floating(),
@@ -315,8 +320,11 @@ impl Settings {
         if self.reset_format != "relative" && self.reset_format != "clock" {
             self.reset_format = "relative".into();
         }
-        if !matches!(self.currency.as_str(), "usd" | "krw" | "both") {
-            self.currency = "both".into();
+        if !matches!(self.currency.as_str(), "usd" | "krw" | "both" | "auto") {
+            self.currency = "auto".into();
+        }
+        if !matches!(self.language.as_str(), "auto" | "ko" | "en") {
+            self.language = "auto".into();
         }
         if !self.krw_rate.is_finite() || self.krw_rate < 0.0 || self.krw_rate > 100_000.0 {
             self.krw_rate = 0.0;
@@ -399,8 +407,11 @@ mod tests {
                 s.reset_format.as_str(),
                 s.currency.as_str()
             ),
-            ("remaining", "relative", "both")
+            ("remaining", "relative", "auto")
         );
+        assert_eq!(s.language, "auto");
+        let s = Settings::from_value(Some(json!({ "language": "fr", "currency": "eur" })));
+        assert_eq!((s.language.as_str(), s.currency.as_str()), ("auto", "auto"));
         assert_eq!(s.hotkey_mode, "PageUp");
         assert!(s.taskbar.system && !s.floating.system);
 

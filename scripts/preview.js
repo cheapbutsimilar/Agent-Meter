@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-/* README images, rendered from the real UI with demo data (scripts/mock-api.js):
+/* README images in Korean (docs/screenshots) and English (docs/screenshots/en), rendered
+ * from the real UI with demo data (scripts/mock-api.js):
  *   hero.png          dashboard + card widget + docked strip on a desktop
  *   widget-card.png   the card layout          widget-strip.png  the strip on a taskbar
  *   themes.png        the card in four themes  dashboard-<page>.png  every dashboard page
@@ -61,62 +62,93 @@ const SIZE_JS = `
     f.dataset.ready = '1';
   });`;
 
-const page = (body, css = '') => `<!doctype html><html lang="ko"><head><meta charset="utf-8"><style>${BASE_CSS}${css}</style></head><body>${body}<script>${SIZE_JS}</script></body></html>`;
-const widget = (mode, q = '') => `/ui/widget/index.html?mode=${mode}${mode === 'taskbar' ? '&tb=48' : ''}${q}`;
-const clock = '<div class="clock">오후 3:42<br/>2026-11-23</div>';
+const page = (body, css = '', lang = 'ko') => `<!doctype html><html lang="${lang}"><head><meta charset="utf-8"><style>${BASE_CSS}${css}</style></head><body>${body}<script>${SIZE_JS}</script></body></html>`;
 
-const STAGES = {
-  // 1440x800: dashboard on the right, the card overlapping it, the strip docked below
-  '/__stage/hero': page(
-    `<div class="hero">
-       <div class="title"><div class="mark"></div><div><b>AgentMeter</b><span>AI 코딩 에이전트 사용량 모니터</span></div></div>
-       <div class="dash win"><iframe src="/ui/dashboard/index.html?page=overview" width="1060" height="720"></iframe></div>
-       <div class="float card"><iframe src="${widget('floating', '&agents=claude,codex')}" width="312" height="460"></iframe></div>
-       <div class="bar taskbar"><div class="apps"><i></i><i></i><i></i></div>
-         <iframe src="${widget('taskbar')}" width="600" height="48"></iframe>${clock}</div>
-     </div>`,
-    `body { width: 1440px; height: 820px; overflow: hidden; }
-     .hero { position: relative; width: 1440px; height: 820px; }
-     .title { position: absolute; left: 64px; top: 64px; display: flex; gap: 16px; align-items: center; }
-     .title .mark { width: 34px; height: 34px; border-radius: 9px; background: #F05C1A; box-shadow: inset 0 0 0 8px rgba(0,0,0,.18); }
-     .title b { display: block; font-size: 34px; font-weight: 800; letter-spacing: -.02em; }
-     .title span { display: block; margin-top: 4px; font-size: 16px; color: #b4b4b4; font-weight: 500; }
-     .dash { position: absolute; right: 48px; top: 48px; transform: scale(.9); transform-origin: top right; }
-     .float { position: absolute; left: 64px; top: 176px; }
-     .bar { position: absolute; left: 0; right: 0; bottom: 0; }`,
-  ),
-  '/__stage/card': page(
-    `<div class="pad"><div class="card"><iframe src="${widget('floating')}" width="312" height="560"></iframe></div></div>`,
-    `body { display: inline-block; } .pad { padding: 40px 48px 52px; display: inline-block; }`,
-  ),
-  '/__stage/strip': page(
-    `<div class="pad"><div class="taskbar"><div class="apps"><i></i><i></i><i></i><i></i><i></i><i></i></div>
-       <iframe src="${widget('taskbar')}" width="600" height="48"></iframe>${clock}</div></div>`,
-    `body { width: 1500px; } .pad { padding: 64px 0 0; }`,
-  ),
-  '/__stage/themes': page(
-    `<div class="grid">${[
-      ['agentmeter', 'dark', 'AgentMeter · 다크'],
-      ['nordic', 'light', '노르딕 · 라이트'],
-      ['midnight', 'dark', '미드나잇 · 다크'],
-      ['rose', 'light', '로즈 · 라이트'],
-    ]
-      .map(
-        ([p, s, l]) =>
-          `<figure><div class="card"><iframe src="${widget('floating', `&preset=${p}&scheme=${s}`)}" width="312" height="560"></iframe></div><figcaption>${l}</figcaption></figure>`,
-      )
-      .join('')}</div>`,
-    `body { display: inline-block; } .grid { display: flex; gap: 28px; padding: 40px 44px 36px; align-items: flex-start; }
-     figure { margin: 0; } figcaption { margin-top: 14px; text-align: center; font-size: 14px; font-weight: 600; color: #c8c8c8; }`,
-  ),
+// Scene text per language (the UI inside the frames follows ?lang=).
+const TEXT = {
+  ko: {
+    tagline: 'AI 코딩 에이전트 사용량 모니터',
+    clock: '오후 3:42<br/>2026-11-23',
+    themes: ['AgentMeter · 다크', '노르딕 · 라이트', '미드나잇 · 다크', '로즈 · 라이트'],
+  },
+  en: {
+    tagline: 'Usage monitor for AI coding agents',
+    clock: '3:42 PM<br/>11/23/2026',
+    themes: ['AgentMeter · Dark', 'Nordic · Light', 'Midnight · Dark', 'Rose · Light'],
+  },
 };
 
-// each dashboard page as a window on the wallpaper
-for (const pg of PAGES) {
-  STAGES[`/__stage/dash-${pg}`] = page(
-    `<div class="pad"><div class="win"><iframe src="/ui/dashboard/index.html?page=${pg}" width="1060" height="720"></iframe></div></div>`,
-    `body { display: inline-block; } .pad { padding: 36px 44px 52px; display: inline-block; }`,
-  );
+/** The composed scenes for one language, at /__stage/<lang>/<name>. */
+function stages(lang) {
+  const T = TEXT[lang];
+  const widget = (mode, q = '') => `/ui/widget/index.html?mode=${mode}${mode === 'taskbar' ? '&tb=48' : ''}&lang=${lang}${q}`;
+  const dash = (pg) => `/ui/dashboard/index.html?page=${pg}&lang=${lang}`;
+  const clock = `<div class="clock">${T.clock}</div>`;
+  const out = {
+    // 1440x820: the dashboard on the right, the card on the left, the strip docked below
+    hero: page(
+      `<div class="hero">
+         <div class="title"><div class="mark"></div><div><b>AgentMeter</b><span>${T.tagline}</span></div></div>
+         <div class="dash win"><iframe src="${dash('overview')}" width="1060" height="720"></iframe></div>
+         <div class="float card"><iframe src="${widget('floating', '&agents=claude,codex')}" width="312" height="460"></iframe></div>
+         <div class="bar taskbar"><div class="apps"><i></i><i></i><i></i></div>
+           <iframe src="${widget('taskbar')}" width="600" height="48"></iframe>${clock}</div>
+       </div>`,
+      `body { width: 1440px; height: 820px; overflow: hidden; }
+       .hero { position: relative; width: 1440px; height: 820px; }
+       .title { position: absolute; left: 64px; top: 64px; display: flex; gap: 16px; align-items: center; }
+       .title .mark { width: 34px; height: 34px; border-radius: 9px; background: #F05C1A; box-shadow: inset 0 0 0 8px rgba(0,0,0,.18); }
+       .title b { display: block; font-size: 34px; font-weight: 800; letter-spacing: -.02em; }
+       .title span { display: block; margin-top: 4px; font-size: 16px; color: #b4b4b4; font-weight: 500; }
+       .dash { position: absolute; right: 48px; top: 48px; transform: scale(.9); transform-origin: top right; }
+       .float { position: absolute; left: 64px; top: 176px; }
+       .bar { position: absolute; left: 0; right: 0; bottom: 0; }`,
+      lang,
+    ),
+    card: page(
+      `<div class="pad"><div class="card"><iframe src="${widget('floating')}" width="312" height="560"></iframe></div></div>`,
+      `body { display: inline-block; } .pad { padding: 40px 48px 52px; display: inline-block; }`,
+      lang,
+    ),
+    strip: page(
+      `<div class="pad"><div class="taskbar"><div class="apps"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+         <iframe src="${widget('taskbar')}" width="600" height="48"></iframe>${clock}</div></div>`,
+      `body { width: 1500px; } .pad { padding: 64px 0 0; }`,
+      lang,
+    ),
+    themes: page(
+      `<div class="grid">${[
+        ['agentmeter', 'dark'],
+        ['nordic', 'light'],
+        ['midnight', 'dark'],
+        ['rose', 'light'],
+      ]
+        .map(
+          ([p, sc], i) =>
+            `<figure><div class="card"><iframe src="${widget('floating', `&preset=${p}&scheme=${sc}`)}" width="312" height="560"></iframe></div><figcaption>${T.themes[i]}</figcaption></figure>`,
+        )
+        .join('')}</div>`,
+      `body { display: inline-block; } .grid { display: flex; gap: 28px; padding: 40px 44px 36px; align-items: flex-start; }
+       figure { margin: 0; } figcaption { margin-top: 14px; text-align: center; font-size: 14px; font-weight: 600; color: #c8c8c8; }`,
+      lang,
+    ),
+  };
+  // each dashboard page as a window on the wallpaper
+  for (const pg of PAGES) {
+    out[`dash-${pg}`] = page(
+      `<div class="pad"><div class="win"><iframe src="${dash(pg)}" width="1060" height="720"></iframe></div></div>`,
+      `body { display: inline-block; } .pad { padding: 36px 44px 52px; display: inline-block; }`,
+      lang,
+    );
+  }
+  return out;
+}
+
+// Korean images in docs/screenshots, English ones in docs/screenshots/en
+const LANGS = { ko: '', en: 'en' };
+const STAGES = {};
+for (const lang of Object.keys(LANGS)) {
+  for (const [name, html] of Object.entries(stages(lang))) STAGES[`/__stage/${lang}/${name}`] = html;
 }
 
 function serve() {
@@ -146,7 +178,6 @@ function serve() {
 }
 
 async function main() {
-  fs.mkdirSync(OUT, { recursive: true });
   const srv = await serve();
   const base = `http://127.0.0.1:${srv.address().port}`;
   const browser = await chromium.launch();
@@ -162,26 +193,31 @@ async function main() {
     await p.waitForTimeout(900);
     return p;
   }
-  const save = async (target, name, opts = {}) => {
-    await target.screenshot({ path: path.join(OUT, `${name}.png`), ...opts });
-    console.log('saved', name);
-  };
 
-  // composed scenes
-  const hero = await open('hero', '/__stage/hero', { width: 1440, height: 820 });
-  await save(hero, 'hero');
-  await hero.close();
-  for (const [name, sel] of [['card', '.pad'], ['strip', '.pad'], ['themes', '.grid']]) {
-    const p = await open(name, `/__stage/${name}`, { width: 1500, height: 900 });
-    await save(p.locator(sel), name === 'themes' ? 'themes' : `widget-${name}`);
-    await p.close();
-  }
+  for (const [lang, sub] of Object.entries(LANGS)) {
+    const dir = path.join(OUT, sub);
+    fs.mkdirSync(dir, { recursive: true });
+    const save = async (target, name) => {
+      await target.screenshot({ path: path.join(dir, `${name}.png`) });
+      console.log('saved', path.join(sub, name));
+    };
+    const stage = (name) => `/__stage/${lang}/${name}`;
 
-  // every dashboard page, as a window
-  for (const pg of PAGES) {
-    const p = await open(pg, `/__stage/dash-${pg}`, { width: 1200, height: 860 });
-    await save(p.locator('.pad'), `dashboard-${pg}`);
-    await p.close();
+    // composed scenes
+    const hero = await open('hero', stage('hero'), { width: 1440, height: 820 });
+    await save(hero, 'hero');
+    await hero.close();
+    for (const [name, sel] of [['card', '.pad'], ['strip', '.pad'], ['themes', '.grid']]) {
+      const p = await open(name, stage(name), { width: 1500, height: 900 });
+      await save(p.locator(sel), name === 'themes' ? 'themes' : `widget-${name}`);
+      await p.close();
+    }
+    // every dashboard page, as a window
+    for (const pg of PAGES) {
+      const p = await open(pg, stage(`dash-${pg}`), { width: 1200, height: 860 });
+      await save(p.locator('.pad'), `dashboard-${pg}`);
+      await p.close();
+    }
   }
 
   await browser.close();

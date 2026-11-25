@@ -14,6 +14,7 @@
   function render() {
     if (dragging) return;
     const s = S.settings;
+    window.AM_I18N.setLang(s.language);
     window.AM_UTIL.setMoney(s, S.fx);
     window.AM_THEME.apply(s);
     const mode = s.mode === 'floating' ? 'floating' : 'taskbar';

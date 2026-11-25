@@ -20,10 +20,11 @@ pub fn register(app: &AppHandle) {
     let gs = app.global_shortcut();
     let _ = gs.unregister_all();
     let mut errors = vec![];
+    let l = |ko, english| crate::i18n::pick(crate::i18n::en(app), ko, english);
     for (accel, label) in [
-        (&s.hotkey_mode, "모드 전환"),
-        (&s.hotkey_visible, "위젯 표시/숨기기"),
-        (&s.hotkey_dashboard, "대시보드"),
+        (&s.hotkey_mode, l("레이아웃 전환", "Switch layout")),
+        (&s.hotkey_visible, l("위젯 표시/숨기기", "Show/hide widget")),
+        (&s.hotkey_dashboard, l("대시보드", "Dashboard")),
     ] {
         let accel = accel.trim();
         if accel.is_empty() {

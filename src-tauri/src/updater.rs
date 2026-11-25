@@ -105,13 +105,15 @@ fn put_off(version: &str) -> bool {
 }
 
 /// First line of the patch notes, for the notification.
-fn headline(notes: &str) -> String {
+fn headline(notes: &str, en: bool) -> String {
     notes
         .lines()
         .map(|l| l.trim().trim_start_matches(['-', '*', '•']).trim())
         .find(|l| !l.is_empty() && !l.starts_with('#'))
         .map(|l| l.chars().take(90).collect())
-        .unwrap_or_else(|| "새 버전이 나왔어요".into())
+        .unwrap_or_else(|| {
+            crate::i18n::pick(en, "새 버전이 나왔어요", "A new version is available").into()
+        })
 }
 
 fn run(app: &AppHandle, mode: Mode) {
@@ -157,22 +159,31 @@ async fn check(app: &AppHandle, mode: Mode) -> Result<(), String> {
         set(app, v);
         if mode == Mode::Manual || !put_off(&version) {
             if mode == Mode::Auto {
-                notify(
-                    app,
-                    &format!("AgentMeter v{version} 업데이트"),
-                    &headline(&notes),
-                );
+                let en = crate::i18n::en(app);
+                let title = if en {
+                    format!("AgentMeter v{version} is available")
+                } else {
+                    format!("AgentMeter v{version} 업데이트")
+                };
+                notify(app, &title, &headline(&notes, en));
             }
             crate::windows::open_update(app);
         }
         return Ok(());
     }
     if mode == Mode::Auto {
-        notify(
-            app,
-            "AgentMeter 업데이트",
-            &format!("새 버전 {version}을 설치하고 다시 시작해요."),
-        );
+        let (title, body) = if crate::i18n::en(app) {
+            (
+                "AgentMeter update".to_string(),
+                format!("Installing {version} and restarting."),
+            )
+        } else {
+            (
+                "AgentMeter 업데이트".to_string(),
+                format!("새 버전 {version}을 설치하고 다시 시작해요."),
+            )
+        };
+        notify(app, &title, &body);
     }
     let with = |state: &str, extra: Value| {
         let mut v = info.clone();

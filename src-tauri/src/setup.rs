@@ -16,7 +16,44 @@ struct Agent {
     /// What to run once the CLI exists.
     login: &'static str,
     hint: &'static str,
+    hint_en: &'static str,
 }
+
+/// The connect terminal's text, in the app's language.
+struct Msg {
+    title: &'static str,
+    connecting: &'static str,
+    installing: &'static str,
+    failed: &'static str,
+    done: &'static str,
+    official: &'static str,
+    need_node: &'static str,
+    need_node_sh: &'static str,
+}
+
+const KO: Msg = Msg {
+    title: "연결",
+    connecting: "로그인을 연결해요.",
+    installing: "가 설치돼 있지 않아서 먼저 설치해요.",
+    failed: "설치에 실패했어요. 위 메시지를 확인하세요.",
+    done: "로그인이 끝나면 AgentMeter가 알아서 감지해요. 끝나면 이 창은 닫아도 돼요.",
+    official: "Node.js 없이 공식 설치 프로그램으로 설치해요...",
+    need_node:
+        "Node.js가 필요해요. 열리는 페이지에서 LTS 버전을 설치한 뒤 [원클릭 연결]을 다시 누르세요.",
+    need_node_sh:
+        "Node.js가 필요해요. https://nodejs.org 에서 LTS를 설치한 뒤 [원클릭 연결]을 다시 누르세요.",
+};
+
+const EN: Msg = Msg {
+    title: "connect",
+    connecting: "login setup",
+    installing: " isn't installed, installing it first.",
+    failed: "Installation failed. Check the messages above.",
+    done: "AgentMeter notices when the login is done. You can close this window afterwards.",
+    official: "Installing with the official installer (no Node.js needed)...",
+    need_node: "Node.js is needed. Install the LTS version from the page that opens, then press [Connect] again.",
+    need_node_sh: "Node.js is needed. Install the LTS version from https://nodejs.org, then press [Connect] again.",
+};
 
 const AGENTS: [Agent; 3] = [
     Agent {
@@ -26,6 +63,7 @@ const AGENTS: [Agent; 3] = [
         npm: "@anthropic-ai/claude-code",
         login: "claude",
         hint: "안내에 따라 Claude 계정으로 로그인하세요. 로그인 화면이 안 나오면 /login 을 입력하세요.",
+        hint_en: "Log in with your Claude account. If no login screen appears, type /login.",
     },
     Agent {
         id: "codex",
@@ -34,6 +72,7 @@ const AGENTS: [Agent; 3] = [
         npm: "@openai/codex",
         login: "codex login",
         hint: "브라우저가 열리면 ChatGPT 계정으로 로그인하세요.",
+        hint_en: "Log in with your ChatGPT account in the browser that opens.",
     },
     Agent {
         id: "gemini",
@@ -42,6 +81,7 @@ const AGENTS: [Agent; 3] = [
         npm: "@google/gemini-cli",
         login: "gemini",
         hint: "인증 방법에서 'Login with Google'을 고르고 브라우저에서 로그인하세요.",
+        hint_en: "Choose 'Login with Google' and log in in the browser.",
     },
 ];
 
@@ -150,37 +190,50 @@ pub fn status() -> Value {
     Value::Object(out)
 }
 
-fn script(a: &Agent) -> (String, &'static str) {
+fn script(a: &Agent, en: bool) -> (String, &'static str) {
     if cfg!(windows) {
-        (cmd_script(a), "cmd")
+        (cmd_script(a, en), "cmd")
     } else {
-        (sh_script(a), "command")
+        (sh_script(a, en), "command")
     }
 }
 
-fn cmd_script(a: &Agent) -> String {
+fn texts(a: &Agent, en: bool) -> (&'static Msg, &'static str) {
+    if en {
+        (&EN, a.hint_en)
+    } else {
+        (&KO, a.hint)
+    }
+}
+
+fn cmd_script(a: &Agent, en: bool) -> String {
+    let (m, hint) = texts(a, en);
     // Claude has an official installer that needs no Node.js.
     let no_node = if a.id == "claude" {
-        "echo Node.js 없이 공식 설치 프로그램으로 설치해요...\r\n\
-         powershell -NoProfile -ExecutionPolicy Bypass -Command \"irm https://claude.ai/install.ps1 | iex\"\r\n\
-         set \"PATH=%USERPROFILE%\\.local\\bin;%PATH%\"\r\n\
-         goto check\r\n"
-            .to_string()
+        format!(
+            "echo {}\r\n\
+             powershell -NoProfile -ExecutionPolicy Bypass -Command \"irm https://claude.ai/install.ps1 | iex\"\r\n\
+             set \"PATH=%USERPROFILE%\\.local\\bin;%PATH%\"\r\n\
+             goto check\r\n",
+            m.official
+        )
     } else {
-        "echo Node.js가 필요해요. 열리는 페이지에서 LTS 버전을 설치한 뒤 [원클릭 연결]을 다시 누르세요.\r\n\
-         start \"\" https://nodejs.org/\r\n\
-         goto end\r\n"
-            .to_string()
+        format!(
+            "echo {}\r\n\
+             start \"\" https://nodejs.org/\r\n\
+             goto end\r\n",
+            m.need_node
+        )
     };
     let s = format!(
         "@echo off\r\n\
          chcp 65001 >nul\r\n\
-         title AgentMeter - {name} 연결\r\n\
-         echo [AgentMeter] {name} 로그인을 연결해요.\r\n\
+         title AgentMeter - {name} {title}\r\n\
+         echo [AgentMeter] {name} {connecting}\r\n\
          echo.\r\n\
          where {exe} >nul 2>nul\r\n\
          if not errorlevel 1 goto login\r\n\
-         echo {name}가 설치돼 있지 않아서 먼저 설치해요.\r\n\
+         echo {name}{installing}\r\n\
          where npm >nul 2>nul\r\n\
          if errorlevel 1 goto nonode\r\n\
          echo npm install -g {npm}\r\n\
@@ -192,50 +245,61 @@ fn cmd_script(a: &Agent) -> String {
          :check\r\n\
          where {exe} >nul 2>nul\r\n\
          if errorlevel 1 (\r\n\
-         echo 설치에 실패했어요. 위 메시지를 확인하세요.\r\n\
+         echo {failed}\r\n\
          goto end\r\n\
          )\r\n\
          :login\r\n\
          echo.\r\n\
          echo {hint}\r\n\
-         echo 로그인이 끝나면 AgentMeter가 알아서 감지해요. 끝나면 이 창은 닫아도 돼요.\r\n\
+         echo {done}\r\n\
          echo.\r\n\
          call {login}\r\n\
          :end\r\n",
         name = a.name,
         exe = a.exe,
         npm = a.npm,
-        hint = a.hint,
         login = a.login,
+        title = m.title,
+        connecting = m.connecting,
+        installing = m.installing,
+        failed = m.failed,
+        done = m.done,
     );
     s
 }
 
-fn sh_script(a: &Agent) -> String {
+fn sh_script(a: &Agent, en: bool) -> String {
+    let (m, hint) = texts(a, en);
     let no_node = if a.id == "claude" {
-        "  echo 'Node.js 없이 공식 설치 프로그램으로 설치해요...'\n  curl -fsSL https://claude.ai/install.sh | bash\n  export PATH=\"$HOME/.local/bin:$PATH\"\n"
+        format!(
+            "  echo \"{}\"\n  curl -fsSL https://claude.ai/install.sh | bash\n  export PATH=\"$HOME/.local/bin:$PATH\"\n",
+            m.official
+        )
     } else {
-        "  echo 'Node.js가 필요해요. https://nodejs.org 에서 LTS를 설치한 뒤 [원클릭 연결]을 다시 누르세요.'\n  exit 0\n"
+        format!("  echo \"{}\"\n  exit 0\n", m.need_node_sh)
     };
     let s = format!(
         "#!/bin/bash\n\
          export PATH=\"$HOME/.local/bin:/usr/local/bin:/opt/homebrew/bin:$PATH\"\n\
-         echo '[AgentMeter] {name} 로그인을 연결해요.'\n\
+         echo \"[AgentMeter] {name} {connecting}\"\n\
          if ! command -v {exe} >/dev/null; then\n\
-         \x20 echo '{name}가 설치돼 있지 않아서 먼저 설치해요.'\n\
+         \x20 echo \"{name}{installing}\"\n\
          \x20 if command -v npm >/dev/null; then npm install -g {npm}; else\n{no_node}  fi\n\
          fi\n\
-         if ! command -v {exe} >/dev/null; then echo '설치에 실패했어요. 위 메시지를 확인하세요.'; exit 1; fi\n\
+         if ! command -v {exe} >/dev/null; then echo \"{failed}\"; exit 1; fi\n\
          echo\n\
          echo \"{hint}\"\n\
-         echo '로그인이 끝나면 AgentMeter가 알아서 감지해요. 끝나면 이 창은 닫아도 돼요.'\n\
+         echo \"{done}\"\n\
          echo\n\
          {login}\n",
         name = a.name,
         exe = a.exe,
         npm = a.npm,
-        hint = a.hint,
         login = a.login,
+        connecting = m.connecting,
+        installing = m.installing,
+        failed = m.failed,
+        done = m.done,
     );
     s
 }
@@ -282,7 +346,7 @@ pub fn connect(app: &AppHandle, id: &str) -> Result<(), String> {
     let a = agent(id).ok_or("이 에이전트는 로그인 연결이 없어요")?;
     let dir = app.state::<AppState>().data_dir.join("setup");
     std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
-    let (body, ext) = script(a);
+    let (body, ext) = script(a, crate::i18n::en(app));
     let path = dir.join(format!("connect-{}.{ext}", a.id));
     std::fs::write(&path, body).map_err(|e| e.to_string())?;
     #[cfg(unix)]
@@ -326,9 +390,9 @@ mod tests {
     fn scripts_are_well_formed() {
         let dir = std::env::temp_dir().join("agentmeter-setup-test");
         std::fs::create_dir_all(&dir).unwrap();
-        for a in &AGENTS {
-            let sh = sh_script(a);
-            let p = dir.join(format!("{}.sh", a.id));
+        for (a, en) in AGENTS.iter().flat_map(|a| [(a, false), (a, true)]) {
+            let sh = sh_script(a, en);
+            let p = dir.join(format!("{}-{en}.sh", a.id));
             std::fs::write(&p, &sh).unwrap();
             if cfg!(unix) {
                 let ok = std::process::Command::new("bash")
@@ -338,7 +402,7 @@ mod tests {
                     .unwrap();
                 assert!(ok.success(), "bash syntax: {}", a.id);
             }
-            let cmd = cmd_script(a);
+            let cmd = cmd_script(a, en);
             assert!(cmd.contains(&format!("call {}", a.login)));
             assert!(
                 !cmd.lines().any(|l| l.starts_with(' ')),

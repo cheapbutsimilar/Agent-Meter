@@ -5,6 +5,7 @@ mod commands;
 mod fx;
 mod hotkeys;
 mod http;
+mod i18n;
 mod menu;
 mod setup;
 mod state;
@@ -18,19 +19,6 @@ use std::sync::atomic::Ordering;
 use std::time::Duration;
 use tauri::{AppHandle, Manager, RunEvent};
 use tauri_plugin_global_shortcut::ShortcutState;
-
-/// "2시간 13분" style countdown for notifications.
-pub fn fmt_left(ms: i64) -> String {
-    let m = (ms.max(0) + 59_999) / 60_000;
-    let (d, h, mm) = (m / 1440, (m % 1440) / 60, m % 60);
-    if d > 0 {
-        format!("{d}일 {h}시간")
-    } else if h > 0 {
-        format!("{h}시간 {mm}분")
-    } else {
-        format!("{mm}분")
-    }
-}
 
 /// Save settings and the usage cache (before quitting or installing an update).
 pub fn flush(app: &AppHandle) {

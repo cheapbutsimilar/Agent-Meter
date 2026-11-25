@@ -5,6 +5,8 @@
   const U = root.AM_UTIL;
   const LOGOS = root.AM_LOGOS || {};
   const esc = U.esc;
+  const I18N = root.AM_I18N;
+  const tr = (k, v) => I18N.t(k, v);
 
   function logo(id, size) {
     return `<span class="logo ${esc(id)}" style="width:${size}px;height:${size}px">${LOGOS[id] || ''}</span>`;
@@ -21,15 +23,15 @@
   }
 
   function resetText(w, settings, now, short) {
-    if (!w.resetsAt) return w.stale ? (short ? '↻--' : '리셋됨') : '';
+    if (!w.resetsAt) return w.stale ? (short ? '↻--' : tr('w.resetDone')) : '';
     const left = w.resetsAt - now;
-    if (settings.resetFormat === 'clock') return short ? `↻${U.fmtClock(w.resetsAt, now)}` : `${U.fmtClock(w.resetsAt, now)} 리셋`;
-    return short ? `↻${U.fmtShortLeft(left)}` : `${U.fmtLeft(left)} 후 리셋`;
+    if (settings.resetFormat === 'clock') return short ? `↻${U.fmtClock(w.resetsAt, now)}` : tr('w.resetAt', { t: U.fmtClock(w.resetsAt, now) });
+    return short ? `↻${U.fmtShortLeft(left)}` : tr('w.resetIn', { t: U.fmtLeft(left) });
   }
 
   function forecastText(w, now) {
     if (!w.exhaustBeforeReset || !w.eta) return '';
-    return `지금 속도면 ${U.fmtLeft(w.eta - now)} 후 소진`;
+    return tr('w.forecast', { t: U.fmtLeft(w.eta - now) });
   }
 
   /** Plain-text tooltip for a provider (used in the docked widget). */
@@ -37,17 +39,17 @@
     const lines = [`${p.name}${p.plan ? ` · ${p.plan}` : ''}`];
     for (const w of p.windows || []) {
       const used = Math.round(w.usedPercent);
-      let line = `${w.label}  ${used}% 사용 · ${100 - used}% 남음`;
-      if (w.resetsAt) line += ` · ${U.fmtDateTime(w.resetsAt)} 리셋 (${U.fmtLeft(w.resetsAt - now)} 후)`;
-      else if (w.source === 'estimate') line += ' · 예산 대비 추정';
+      let line = tr('w.tipLine', { label: w.label, used, left: 100 - used });
+      if (w.resetsAt) line += tr('w.tipReset', { at: U.fmtDateTime(w.resetsAt), in: U.fmtLeft(w.resetsAt - now) });
+      else if (w.source === 'estimate') line += tr('w.tipEstimate');
       lines.push(line);
       const fc = forecastText(w, now);
-      if (fc) lines.push(`    ⚠ ${fc} — 리셋보다 빨라요`);
-      else if (w.ratePerHour) lines.push(`    시간당 약 ${w.ratePerHour.toFixed(1)}%p`);
+      if (fc) lines.push(tr('w.tipForecast', { fc }));
+      else if (w.ratePerHour) lines.push(tr('w.tipRate', { r: w.ratePerHour.toFixed(1) }));
     }
     const t = p.tokens || {};
-    lines.push(`오늘 ${U.fmtNum(t.today)} 토큰 · ${U.fmtMoney(t.costToday)} (API 환산)`);
-    if (p.apiError) lines.push(`! ${p.apiError}`);
+    lines.push(tr('w.tipToday', { n: U.fmtNum(t.today), cost: U.fmtMoney(t.costToday) }));
+    if (p.apiError) lines.push(`! ${I18N.apiError(p.apiError)}`);
     return lines.join('\n');
   }
 
@@ -67,7 +69,7 @@
     const blocks = [];
     for (const p of shownProviders(usage, settings)) {
       const ws = U.visibleWindows(p, settings, o);
-      const active = U.isActive(p, now) ? '<span class="live" title="작업 중"></span>' : '';
+      const active = U.isActive(p, now) ? `<span class="live" title="${esc(tr('w.working'))}"></span>` : '';
       let html = `<div class="prov" data-id="${p.id}" title="${esc(tooltip(p, settings, now))}">`;
       if (o.logo) html += `<span class="lg">${logo(p.id, h >= 34 ? 18 : 16)}${active}</span>`;
       if (o.name) html += `<span class="nm">${esc(p.name)}</span>`;
@@ -104,8 +106,9 @@
           `</div></div>`,
       );
     }
-    if (!blocks.length) blocks.push(`<div class="prov empty">감지된 에이전트 없음</div>`);
-    const gear = o.gear !== false ? `<span class="sep"></span><button class="ib gear" data-act="settings" title="설정" aria-label="설정">${ICON.gear}</button>` : '';
+    if (!blocks.length) blocks.push(`<div class="prov empty">${esc(tr('w.noAgentsShort'))}</div>`);
+    const gl = esc(tr('w.settings'));
+    const gear = o.gear !== false ? `<span class="sep"></span><button class="ib gear" data-act="settings" title="${gl}" aria-label="${gl}">${ICON.gear}</button>` : '';
     const free = ctx.docked === false ? ' free' : '';
     return `<div class="w taskbar${free}" style="--h:${h}px;--op:${settings.opacity}">${blocks.join('<span class="sep"></span>')}${gear}</div>`;
   }
@@ -119,7 +122,7 @@
     const api = list.filter((p) => p.source === 'api' && p.limitsAt).map((p) => p.limitsAt);
     const at = api.length ? Math.min(...api) : usage.at;
     const stale = api.length && now - at > 10 * 60 * 1000;
-    return `<span class="upd${stale ? ' stale' : ''}" title="한도 기준 시각">${esc(U.relTime(at, now))}</span>`;
+    return `<span class="upd${stale ? ' stale' : ''}" title="${esc(tr('w.limitsAt'))}">${esc(U.relTime(at, now))}</span>`;
   }
 
   // ------------------------------------------------------------------ floating (card)
@@ -130,9 +133,9 @@
     let html = `<div class="w floating" style="--op:${settings.opacity}">`;
     html += `<header class="head"><span class="mark"></span><span class="ttl">AgentMeter</span><span class="sp"></span>` +
       upd(list, usage, now) +
-      `<button class="ib" data-act="refresh" title="새로고침">${ICON.refresh}</button>` +
-      `<button class="ib" data-act="dashboard" title="대시보드">${ICON.panel}</button>` +
-      (o.gear !== false ? `<button class="ib" data-act="settings" title="설정" aria-label="설정">${ICON.gear}</button>` : '') +
+      `<button class="ib" data-act="refresh" title="${esc(tr('w.refresh'))}">${ICON.refresh}</button>` +
+      `<button class="ib" data-act="dashboard" title="${esc(tr('w.dashboard'))}">${ICON.panel}</button>` +
+      (o.gear !== false ? `<button class="ib" data-act="settings" title="${esc(tr('w.settings'))}" aria-label="${esc(tr('w.settings'))}">${ICON.gear}</button>` : '') +
       `</header>`;
     for (const p of list) {
       const ws = U.visibleWindows(p, settings, o);
@@ -142,7 +145,7 @@
       if (o.name) html += `<span class="nm">${esc(p.name)}</span>`;
       if (p.plan) html += `<span class="plan">${esc(p.plan)}</span>`;
       html += `<span class="sp"></span>`;
-      if (U.isActive(p, now)) html += `<span class="state live-t"><i class="live"></i>작업 중</span>`;
+      if (U.isActive(p, now)) html += `<span class="state live-t"><i class="live"></i>${esc(tr('w.working'))}</span>`;
       html += `</div>`;
       for (const w of ws) {
         const sev = U.severity(w.usedPercent, settings.alertThresholds);
@@ -150,7 +153,7 @@
         html += `<div class="wl">`;
         if (o.label) html += `<span class="lb" title="${esc(U.windowName(w))}">${esc(w.label)}</span>`;
         if (o.bar) html += meter(w, settings, { pace: o.pace });
-        if (o.percent) html += `<span class="pc sev-${sev}">${U.fmtPct(val)}${settings.valueMode === 'remaining' ? '<small>남음</small>' : ''}</span>`;
+        if (o.percent) html += `<span class="pc sev-${sev}">${U.fmtPct(val)}${settings.valueMode === 'remaining' ? `<small>${esc(tr('w.left'))}</small>` : ''}</span>`;
         html += `</div>`;
         const meta = [];
         if (o.reset) {
@@ -163,14 +166,14 @@
         }
         if (meta.length) html += `<div class="meta">${meta.join('')}</div>`;
       }
-      if (!ws.length) html += `<div class="meta"><span>한도 정보 없음 · 토큰만 집계 중</span></div>`;
+      if (!ws.length) html += `<div class="meta"><span>${esc(tr('w.noLimits'))}</span></div>`;
       const stats = [];
-      if (o.tokens) stats.push(`오늘 <b>${U.fmtNum(p.tokens.today)}</b> 토큰`);
-      if (o.cost) stats.push(`<b>${U.fmtMoney(p.tokens.costToday)}</b> <span title="API 정가 기준 환산 추정치">환산</span>`);
+      if (o.tokens) stats.push(tr('w.today', { n: U.fmtNum(p.tokens.today) }));
+      if (o.cost) stats.push(`<b>${U.fmtMoney(p.tokens.costToday)}</b> <span title="${esc(tr('w.costTitle'))}">${esc(tr('w.cost'))}</span>`);
       if (stats.length) html += `<div class="st">${stats.join('<i></i>')}</div>`;
       html += `</section>`;
     }
-    if (!list.length) html += `<section class="prov empty">감지된 에이전트가 없어요.<br/>대시보드 › 에이전트에서 경로를 확인하세요.</section>`;
+    if (!list.length) html += `<section class="prov empty">${tr('w.noAgents')}</section>`;
     if (o.system && system) {
       html += `<footer class="sysf"><span>CPU</span>${sysMeter(system.cpu)}<b>${Math.round(system.cpu)}%</b><span>RAM</span>${sysMeter(system.ram)}<b>${Math.round(system.ram)}%</b></footer>`;
     }

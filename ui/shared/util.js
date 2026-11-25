@@ -2,6 +2,8 @@
 (function (root) {
   'use strict';
 
+  const I18N = root.AM_I18N;
+  const tr = (k, v) => I18N.t(k, v);
   const MIN = 60 * 1000;
   const HOUR = 60 * MIN;
   const DAY = 24 * HOUR;
@@ -35,9 +37,15 @@
   // Costs are kept in USD; the display currency and won rate come from the settings.
   const DEFAULT_KRW = 1400; // only until the first rate is fetched
   const money = { currency: 'usd', rate: DEFAULT_KRW, rateSource: 'default', at: null };
+  /** "auto" (the default): both currencies in Korean, dollars in English. */
+  function currencyOf(settings) {
+    const c = (settings && settings.currency) || 'auto';
+    if (c === 'auto') return I18N.lang === 'ko' ? 'both' : 'usd';
+    return c;
+  }
   /** settings.currency / settings.krwRate (0 = fetched) + fx = { krw, at } from the app. */
   function setMoney(settings, fx) {
-    money.currency = (settings && settings.currency) || 'usd';
+    money.currency = currencyOf(settings);
     const manual = Number(settings && settings.krwRate) || 0;
     if (manual > 0) Object.assign(money, { rate: manual, rateSource: 'manual', at: null });
     else if (fx && fx.krw) Object.assign(money, { rate: fx.krw, rateSource: 'auto', at: fx.at });
@@ -55,22 +63,29 @@
     if (w < 1) return '<₩1';
     return `₩${Math.round(w).toLocaleString('ko-KR')}`;
   }
-  /** Compact form for chart axes: one currency, 만/억 for won. */
+  /** Compact won: 만/억 in Korean, K/M elsewhere. */
+  function fmtKrwShort(v) {
+    const w = v * money.rate;
+    if (I18N.lang === 'ko') {
+      if (w >= 1e8) return `₩${(w / 1e8).toFixed(w >= 1e9 ? 0 : 1)}억`;
+      if (w >= 1e4) return `₩${(w / 1e4).toFixed(w >= 1e5 ? 0 : 1)}만`;
+    } else {
+      if (w >= 1e6) return `₩${(w / 1e6).toFixed(w >= 1e7 ? 0 : 1)}M`;
+      if (w >= 1e4) return `₩${Math.round(w / 1e3)}K`;
+    }
+    return fmtKrw(v);
+  }
+  /** Compact form for chart axes: one currency. */
   function fmtMoneyShort(v) {
     v = Number(v) || 0;
     if (money.currency === 'usd' || money.currency === 'both') return fmtUsd(v);
-    const w = v * money.rate;
-    if (w >= 1e8) return `₩${(w / 1e8).toFixed(w >= 1e9 ? 0 : 1)}억`;
-    if (w >= 1e4) return `₩${(w / 1e4).toFixed(w >= 1e5 ? 0 : 1)}만`;
-    return fmtKrw(v);
+    return fmtKrwShort(v);
   }
-  /** Compact text for summaries: with "both", the won amount in 만/억 after the dollars. */
+  /** Compact text for summaries: with "both", the compact won amount after the dollars. */
   function fmtMoneyBrief(v) {
     v = Number(v) || 0;
     if (money.currency !== 'both') return fmtMoneyShort(v);
-    const w = v * money.rate;
-    const krw = w >= 1e8 ? `₩${(w / 1e8).toFixed(w >= 1e9 ? 0 : 1)}억` : w >= 1e4 ? `₩${(w / 1e4).toFixed(w >= 1e5 ? 0 : 1)}만` : fmtKrw(v);
-    return `${fmtUsd(v)} (${krw})`;
+    return `${fmtUsd(v)} (${fmtKrwShort(v)})`;
   }
   /** For tight spots: with "both", the won amount goes on a second, smaller line. */
   function fmtMoneyHtml(v) {
@@ -91,21 +106,21 @@
     return `${r}%`;
   }
 
-  /** "2시간 13분", "3일 4시간", "45분" */
+  /** "2시간 13분" / "2h 13m", "3일 4시간" / "3d 4h", "45분" / "45m" */
   function fmtLeft(ms) {
     if (ms == null) return '';
-    if (ms <= 0) return '곧';
+    if (ms <= 0) return tr('time.soon');
     if (ms >= DAY) {
       const d = Math.floor(ms / DAY);
       const h = Math.floor((ms % DAY) / HOUR);
-      return h ? `${d}일 ${h}시간` : `${d}일`;
+      return h ? tr('time.dh', { d, h }) : tr('time.d', { d });
     }
     if (ms >= HOUR) {
       const h = Math.floor(ms / HOUR);
       const m = Math.floor((ms % HOUR) / MIN);
-      return m ? `${h}시간 ${m}분` : `${h}시간`;
+      return m ? tr('time.hm', { h, m }) : tr('time.h', { h });
     }
-    return `${Math.max(1, Math.ceil(ms / MIN))}분`;
+    return tr('time.m', { m: Math.max(1, Math.ceil(ms / MIN)) });
   }
 
   /** compact for the taskbar: "04h", "3d", "45m" */
@@ -138,13 +153,13 @@
   }
 
   function relTime(ts, now = Date.now()) {
-    if (!ts) return '기록 없음';
+    if (!ts) return tr('rel.none');
     const d = now - ts;
-    if (d < 10 * 1000) return '방금';
-    if (d < MIN) return `${Math.floor(d / 1000)}초 전`;
-    if (d < HOUR) return `${Math.floor(d / MIN)}분 전`;
-    if (d < DAY) return `${Math.floor(d / HOUR)}시간 전`;
-    return `${Math.floor(d / DAY)}일 전`;
+    if (d < 10 * 1000) return tr('rel.now');
+    if (d < MIN) return tr('rel.s', { n: Math.floor(d / 1000) });
+    if (d < HOUR) return tr('rel.m', { n: Math.floor(d / MIN) });
+    if (d < DAY) return tr('rel.h', { n: Math.floor(d / HOUR) });
+    return tr('rel.d', { n: Math.floor(d / DAY) });
   }
 
   function severity(used, thresholds) {
@@ -171,19 +186,20 @@
     return !!(p && p.tokens && p.tokens.lastEventAt && now - p.tokens.lastEventAt < 2 * MIN);
   }
 
-  const SOURCE_LABEL = { api: '공식 API', log: '로그', estimate: '예산 추정', command: '명령어', none: '' };
+  /** "공식 API" / "Official API" … for a limit source. */
+  function sourceLabel(src) {
+    return src && src !== 'none' ? tr(`source.${src}`) : '';
+  }
 
-  /** Long name of a window id for tooltips. */
+  /** Long name of a window id for tooltips ("Fable" -> "Fable model limit (weekly)"). */
   function windowName(w) {
     const m = w.windowMinutes;
-    if (w.id === '5h' || m === 300) return '5시간 한도';
-    if (w.id === '7d') return '주간 한도';
-    if (w.id === '7d_opus') return 'Opus 주간 한도';
-    if (w.id === '7d_sonnet') return 'Sonnet 주간 한도';
-    if (w.id === 'pro') return 'Pro 모델 일일 할당량';
-    if (w.id === 'flash') return 'Flash 모델 일일 할당량';
-    if (w.id === 'day') return '일일 할당량';
-    return `${w.label} 한도`;
+    if (w.id === '5h') return tr('win.5h');
+    if (['7d', '7d_opus', '7d_sonnet', 'pro', 'flash', 'day'].includes(w.id)) return tr(`win.${w.id}`);
+    if (/^7d_/.test(w.id)) return tr('win.model7d', { label: w.label });
+    if (/^5h_/.test(w.id)) return tr('win.model5h', { label: w.label.replace(/ 5H$/, '') });
+    if (m === 300) return tr('win.5h');
+    return tr('win.generic', { label: w.label });
   }
 
   /** CHANGELOG.md -> [{ version, date, items: [line] }] (newest first). "## v0.2.3 · 2026-11-18"
@@ -225,6 +241,7 @@
     fmtNum,
     fmtMoney,
     setMoney,
+    currencyOf,
     fmtMoneyShort,
     fmtMoneyBrief,
     fmtMoneyHtml,
@@ -240,6 +257,6 @@
     visibleWindows,
     isActive,
     windowName,
-    SOURCE_LABEL,
+    sourceLabel,
   };
 })(typeof self !== 'undefined' ? self : this);

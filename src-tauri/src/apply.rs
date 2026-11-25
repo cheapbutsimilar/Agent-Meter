@@ -36,6 +36,8 @@ pub fn update_settings(app: &AppHandle, patch: Value) -> Value {
     if prev.hotkey_mode != next.hotkey_mode
         || prev.hotkey_visible != next.hotkey_visible
         || prev.hotkey_dashboard != next.hotkey_dashboard
+        // registration errors are shown with a label in the chosen language
+        || prev.language != next.language
     {
         hotkeys::register(app);
     }

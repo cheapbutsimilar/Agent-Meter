@@ -116,7 +116,7 @@
   const provider = (o) => Object.assign({ enabled: true, visible: true, hiddenWindows: [], useApi: true, extraPaths: '', budget5h: 0, budgetWeek: 0, command: '' }, o);
   let settings = {
     v: 3, mode: 'floating', docked: true, widgetVisible: true, hotkeyMode: 'PageUp', hotkeyVisible: 'Shift+PageUp', hotkeyDashboard: '',
-    valueMode: 'remaining', resetFormat: 'relative', currency: 'both', krwRate: 0,
+    valueMode: 'remaining', resetFormat: 'relative', currency: 'auto', krwRate: 0, language: 'ko',
     taskbar: display({}),
     floating: display({ name: true, pace: true, tokens: true, cost: true, system: false, minorWindows: false }),
     opacity: 0.92, scale: 1,
@@ -139,6 +139,7 @@
   if (qs.get('preset')) settings.theme.preset = qs.get('preset');
   if (qs.get('scheme')) settings.theme.mode = qs.get('scheme');
   if (qs.get('value')) settings.valueMode = qs.get('value');
+  if (qs.get('lang')) settings.language = qs.get('lang');
   if (qs.get('agents')) {
     const shown = qs.get('agents').split(',');
     for (const [id, c] of Object.entries(settings.providers)) c.visible = shown.includes(id);

@@ -6,10 +6,18 @@
   const U = window.AM_UTIL;
   const $ = (s) => document.querySelector(s);
   const esc = U.esc;
+  const I18N = window.AM_I18N;
+  const tr = (k, v) => I18N.t(k, v);
   const MAX_ITEMS = 5;
 
   const S = await api.init();
-  window.AM_THEME.apply(S.settings);
+  function applySettings(s) {
+    I18N.setLang(s.language);
+    I18N.applyDom();
+    document.title = tr('uw.title');
+    window.AM_THEME.apply(s);
+  }
+  applySettings(S.settings);
   let u = S.update || {};
 
   function render() {
@@ -17,8 +25,8 @@
     $('#ver').innerHTML = `${current ? `<span>v${esc(current)}</span><span class="arrow">→</span>` : ''}<b>v${esc(u.version || '')}</b>`;
     const items = U.noteItems(u.notes);
     const shown = items.slice(0, MAX_ITEMS).map((t) => `<li>${esc(t)}</li>`);
-    if (!items.length) shown.push('<li>버그 수정과 개선</li>');
-    if (items.length > MAX_ITEMS) shown.push(`<li class="more">외 ${items.length - MAX_ITEMS}가지 변경</li>`);
+    if (!items.length) shown.push(`<li>${esc(tr('notes.fallback'))}</li>`);
+    if (items.length > MAX_ITEMS) shown.push(`<li class="more">${esc(tr('uw.more', { n: items.length - MAX_ITEMS }))}</li>`);
     $('#notes').innerHTML = shown.join('');
 
     const busy = u.state === 'downloading' || u.state === 'installing';
@@ -28,14 +36,14 @@
     $('#bar').style.width = `${u.state === 'installing' ? 100 : u.progress || 0}%`;
     $('#status-text').textContent =
       u.state === 'installing'
-        ? '설치하고 다시 시작해요…'
+        ? tr('uw.installing')
         : u.state === 'downloading'
-          ? `내려받는 중 ${u.progress || 0}%`
+          ? tr('uw.downloading', { p: u.progress || 0 })
           : u.state === 'error'
-            ? `업데이트하지 못했어요: ${u.error || ''}`
+            ? tr('uw.failed', { e: u.error || '' })
             : '';
     $('#btn-install').disabled = busy;
-    $('#btn-install').textContent = u.state === 'error' ? '다시 시도' : '지금 업데이트';
+    $('#btn-install').textContent = u.state === 'error' ? tr('uw.retry') : tr('uw.install');
     $('#btn-later').hidden = busy;
   }
 
@@ -67,7 +75,10 @@
       render();
     }
   });
-  api.on('settings', (s) => window.AM_THEME.apply(s));
+  api.on('settings', (s) => {
+    applySettings(s);
+    render();
+  });
 
   render();
 })();

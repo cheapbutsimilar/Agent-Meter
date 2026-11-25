@@ -1,4 +1,5 @@
 /* Themes: presets + user colours -> CSS variables for the dashboard and the widget.
+ * Display names here are fallbacks; the UI shows AM_I18N 'preset.<id>' / 'font.<id>'.
  * Everything is derived from three colours (background, text, accent), so any choice
  * keeps the same structure. Global: AM_THEME */
 (function (root) {
@@ -6,19 +7,19 @@
 
   const PRESETS = {
     agentmeter: { name: 'AgentMeter', accent: '#F05C1A', dark: { bg: '#2B2B2B', fg: '#F3F3F3' }, light: { bg: '#F6F5F3', fg: '#1E1E1E' }, accentLight: '#E0531A' },
-    midnight: { name: '미드나잇', accent: '#E6B450', dark: { bg: '#10141C', fg: '#BFBDB6' }, light: { bg: '#FAFAF8', fg: '#3D424D' }, accentLight: '#D99A1E' },
-    nordic: { name: '노르딕', accent: '#88C0D0', dark: { bg: '#2E3440', fg: '#E5E9F0' }, light: { bg: '#ECEFF4', fg: '#2E3440' }, accentLight: '#5E81AC' },
-    forest: { name: '포레스트', accent: '#4CC38A', dark: { bg: '#17201C', fg: '#DCE5DF' }, light: { bg: '#F2F6F3', fg: '#1D2A23' }, accentLight: '#1F8A5B' },
-    graphite: { name: '그래파이트', accent: '#8AB4F8', dark: { bg: '#202124', fg: '#E8EAED' }, light: { bg: '#FFFFFF', fg: '#202124' }, accentLight: '#1A73E8' },
-    rose: { name: '로즈', accent: '#F27A9B', dark: { bg: '#241C20', fg: '#F0E4E8' }, light: { bg: '#FBF6F7', fg: '#2B1F24' }, accentLight: '#D2456C' },
+    midnight: { name: 'Midnight', accent: '#E6B450', dark: { bg: '#10141C', fg: '#BFBDB6' }, light: { bg: '#FAFAF8', fg: '#3D424D' }, accentLight: '#D99A1E' },
+    nordic: { name: 'Nordic', accent: '#88C0D0', dark: { bg: '#2E3440', fg: '#E5E9F0' }, light: { bg: '#ECEFF4', fg: '#2E3440' }, accentLight: '#5E81AC' },
+    forest: { name: 'Forest', accent: '#4CC38A', dark: { bg: '#17201C', fg: '#DCE5DF' }, light: { bg: '#F2F6F3', fg: '#1D2A23' }, accentLight: '#1F8A5B' },
+    graphite: { name: 'Graphite', accent: '#8AB4F8', dark: { bg: '#202124', fg: '#E8EAED' }, light: { bg: '#FFFFFF', fg: '#202124' }, accentLight: '#1A73E8' },
+    rose: { name: 'Rose', accent: '#F27A9B', dark: { bg: '#241C20', fg: '#F0E4E8' }, light: { bg: '#FBF6F7', fg: '#2B1F24' }, accentLight: '#D2456C' },
   };
 
   const FONTS = {
-    system: { name: '시스템 기본', css: null },
+    system: { name: 'System default', css: null },
     pretendard: { name: 'Pretendard', css: "'Pretendard Variable', Pretendard, 'Malgun Gothic', sans-serif" },
-    malgun: { name: '맑은 고딕', css: "'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif" },
+    malgun: { name: 'Malgun Gothic', css: "'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif" },
     noto: { name: 'Noto Sans KR', css: "'Noto Sans KR', 'Malgun Gothic', sans-serif" },
-    mono: { name: '고정폭', css: "'D2Coding', 'JetBrains Mono', 'Cascadia Mono', Consolas, monospace" },
+    mono: { name: 'Monospace', css: "'D2Coding', 'JetBrains Mono', 'Cascadia Mono', Consolas, monospace" },
   };
 
   const hex2rgb = (h) => {

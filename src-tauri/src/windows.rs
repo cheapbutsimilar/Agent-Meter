@@ -290,7 +290,11 @@ pub fn open_update(app: &AppHandle) {
         return;
     }
     let res = WebviewWindowBuilder::new(app, UPDATE, WebviewUrl::App("update/index.html".into()))
-        .title("AgentMeter 업데이트")
+        .title(crate::i18n::pick(
+            crate::i18n::en(app),
+            "AgentMeter 업데이트",
+            "AgentMeter update",
+        ))
         .inner_size(440.0, 460.0)
         .resizable(false)
         .maximizable(false)
