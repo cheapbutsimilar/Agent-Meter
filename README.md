@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/screenshots/en/hero.png" alt="AgentMeter: the dashboard, the card widget and the strip docked in the taskbar" width="100%">
+<img src="docs/screenshots/en/demo.gif" alt="AgentMeter demo: the strip docked next to the taskbar clock, PageUp switching it to the card and back, limits and the run-out forecast updating (time-lapse)" width="100%">
 
 # AgentMeter
 
@@ -27,15 +27,6 @@ right in your taskbar or on your desktop.
 [Development](#development)
 
 </div>
-
-<table>
-<tr>
-<td width="34%" valign="top"><img src="docs/screenshots/en/widget-card.png" alt="Card widget"></td>
-<td valign="top"><img src="docs/screenshots/en/dashboard-overview.png" alt="Dashboard overview"></td>
-</tr>
-</table>
-
-<br>
 
 If you use several AI coding agents, it's hard to tell **which limit runs out first** and **whether you'll
 make it to the reset**. AgentMeter reads the official limit percentages from each service and the usage logs on
@@ -81,7 +72,12 @@ One widget, two layouts. Press `PageUp` to switch.
 
 The widget steps behind full-screen apps such as videos and games.
 
-<img src="docs/screenshots/en/widget-strip.png" alt="The strip layout docked in the Windows taskbar" width="100%">
+<table>
+<tr>
+<td width="30%" valign="top"><img src="docs/screenshots/en/widget-card.png" alt="Card widget"></td>
+<td valign="middle"><img src="docs/screenshots/en/widget-strip.png" alt="The strip layout docked in the Windows taskbar"></td>
+</tr>
+</table>
 
 ### Appearance
 
@@ -277,6 +273,7 @@ ui/update/         the "new version" window
 ui/shared/         i18n.js (Korean/English), tokens.css, theme.js, render.js (widget renderer), util.js, logos.js
 crates/devserver/  the browser preview server
 scripts/           mock-api.js (demo data), preview.js (README images), release-notes.js, make-icons.py
+docs/screenshots/  README images; demo-gif.js renders the demo GIF from the real widget UI (a reproduction, not a recording)
 ```
 
 See [docs/HANDOFF.md](docs/HANDOFF.md) for building another app on the same design and shell, and
