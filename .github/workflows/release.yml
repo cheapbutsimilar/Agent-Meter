@@ -5,7 +5,7 @@ name: Release
 # themselves. Needs the TAURI_SIGNING_PRIVATE_KEY repository secret; without it this skips.
 on:
   push:
-    branches: [claude/upbeat-bardeen-03j27a]
+    branches: [main]
     paths-ignore: ['**.md', 'docs/**']
   workflow_dispatch:
 

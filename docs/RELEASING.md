@@ -5,7 +5,7 @@ themselves from there. This page is for whoever maintains the repository.
 
 ## How a release happens
 
-1. Push code to the release branch. The `Release` workflow (`.github/workflows/release.yml`) runs on
+1. Push code to `main`. The `Release` workflow (`.github/workflows/release.yml`) runs on
    `windows-latest`.
 2. The version becomes `0.2.<run number>`. Pushes that only touch documentation (`**.md`, `docs/**`)
    don't start a release.
