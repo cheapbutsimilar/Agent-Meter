@@ -186,7 +186,35 @@
     return `${w.label} 한도`;
   }
 
+  /** CHANGELOG.md -> [{ version, date, items: [line] }] (newest first). "## v0.2.3 · 2026-11-18"
+   *  headings, "- " items; the title and HTML comments are skipped. */
+  function parseChangelog(md) {
+    const out = [];
+    const text = String(md || '').replace(/<!--[\s\S]*?-->/g, '');
+    for (const raw of text.split('\n')) {
+      const line = raw.trim();
+      if (line.startsWith('## ')) {
+        const head = line.slice(3).trim();
+        const [version, date] = head.split('·').map((x) => x.trim());
+        out.push({ version: version || head, date: date || '', items: [] });
+      } else if (/^[-*•]\s+/.test(line) && out.length) {
+        out[out.length - 1].items.push(line.replace(/^[-*•]\s+/, ''));
+      }
+    }
+    return out;
+  }
+  /** Bullet lines of one release's notes (the update popup). */
+  function noteItems(md) {
+    return String(md || '')
+      .split('\n')
+      .map((l) => l.trim())
+      .filter((l) => /^[-*•]\s+/.test(l))
+      .map((l) => l.replace(/^[-*•]\s+/, ''));
+  }
+
   root.AM_UTIL = {
+    parseChangelog,
+    noteItems,
     MIN,
     HOUR,
     DAY,

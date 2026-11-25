@@ -17,6 +17,8 @@
     refresh: () => invoke('usage_refresh'),
     updateCheck: () => invoke('update_check'),
     updateInstall: () => invoke('update_install'),
+    updateLater: () => invoke('update_later'),
+    changelog: () => invoke('changelog'),
     setupStatus: () => invoke('setup_status'),
     setupConnect: (agent) => invoke('setup_connect', { agent }),
     openDashboard: (page) => invoke('open_dashboard', { page: page || null }),

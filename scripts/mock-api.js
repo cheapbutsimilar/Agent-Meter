@@ -152,9 +152,16 @@
     return base;
   }
 
+  // a found update (?update=available), as the updater reports it
+  const NEW_UPDATE = {
+    state: 'available', version: '0.2.25', current: '0.2.24', auto: true, at: now,
+    notes: '- 새 버전이 나오면 "지금 업데이트 / 나중에"를 고르는 창이 떠요\n- 설정 → 일반 → 업데이트에서 패치노트를 볼 수 있어요\n- 위젯 우클릭 메뉴가 위젯 뒤로 가려지던 문제를 고쳤어요',
+  };
+  let update = qs.get('update') === 'available' ? { ...NEW_UPDATE } : { state: 'latest', at: now - 40 * MIN };
+
   window.agentMeter = {
     init: async () => ({
-      window: location.pathname.includes('dashboard') ? 'dashboard' : 'widget',
+      window: location.pathname.includes('dashboard') ? 'dashboard' : location.pathname.includes('update') ? 'update' : 'widget',
       settings,
       usage,
       system: { cpu: 3, ram: 45 },
@@ -164,7 +171,7 @@
       taskbarHeight: Number(qs.get('tb')) || 48,
       hotkeyErrors: [],
       dataDir: 'C:\\Users\\me\\AppData\\Roaming\\dev.agentmeter.app',
-      update: { state: 'latest', at: now - 40 * MIN },
+      update,
       fx: { krw: 1432.5, at: now - 3 * HOUR },
     }),
     setSettings: async (patch) => {
@@ -175,7 +182,15 @@
     },
     updateCheck: () => {
       emit('event', { type: 'update', update: { state: 'checking' } });
-      setTimeout(() => emit('event', { type: 'update', update: { state: 'available', version: '0.2.9', auto: false } }), 800);
+      setTimeout(() => emit('event', { type: 'update', update: (update = { ...NEW_UPDATE }) }), 800);
+    },
+    updateLater: () => {},
+    changelog: async () => {
+      try {
+        return await (await fetch('/CHANGELOG.md')).text();
+      } catch (_) {
+        return '';
+      }
     },
     setupStatus: async () => ({
       claude: { supported: true, cli: true, login: true },
@@ -186,7 +201,7 @@
     setupConnect: async (agent) => {
       setTimeout(() => emit('event', { type: 'setup', agent, status: { claude: { supported: true, cli: true, login: true }, codex: { supported: true, cli: true, login: true }, gemini: { supported: true, cli: true, login: true }, grok: { supported: false } } }), 1500);
     },
-    updateInstall: () => emit('event', { type: 'update', update: { state: 'downloading', version: '0.2.9', progress: 30 } }),
+    updateInstall: () => emit('event', { type: 'update', update: (update = { ...NEW_UPDATE, state: 'downloading', progress: 30 }) }),
     refresh: async () => {
       usage.at = Date.now();
       emit('usage', usage);

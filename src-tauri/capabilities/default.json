@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "AgentMeter windows: app commands, core events, dragging the dashboard title bar",
-  "windows": ["widget", "dashboard"],
+  "description": "AgentMeter windows: app commands, core events, dragging the dashboard and update window title bars",
+  "windows": ["widget", "dashboard", "update"],
   "permissions": ["core:default", "core:window:allow-start-dragging"]
 }

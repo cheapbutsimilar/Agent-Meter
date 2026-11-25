@@ -8,6 +8,7 @@ use tauri::{
 
 pub const WIDGET: &str = "widget";
 pub const DASHBOARD: &str = "dashboard";
+pub const UPDATE: &str = "update";
 
 /// Logical rectangle.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -275,6 +276,42 @@ pub fn open_dashboard(app: &AppHandle, page: Option<String>) {
     }
 }
 
+/// The "새 버전이 나왔어요" window (patch notes + 지금 업데이트 / 나중에).
+/// Called from the updater thread, never from a synchronous command.
+pub fn open_update(app: &AppHandle) {
+    if let Some(w) = app.get_webview_window(UPDATE) {
+        let _ = w.emit(
+            "event",
+            serde_json::json!({ "type": "update", "update": crate::updater::status() }),
+        );
+        let _ = w.unminimize();
+        let _ = w.show();
+        let _ = w.set_focus();
+        return;
+    }
+    let res = WebviewWindowBuilder::new(app, UPDATE, WebviewUrl::App("update/index.html".into()))
+        .title("AgentMeter 업데이트")
+        .inner_size(440.0, 460.0)
+        .resizable(false)
+        .maximizable(false)
+        .minimizable(false)
+        .decorations(false)
+        .shadow(true)
+        .always_on_top(true)
+        .center()
+        .focused(true)
+        .build();
+    if let Err(e) = res {
+        eprintln!("[update] {e}");
+    }
+}
+
+pub fn close_update(app: &AppHandle) {
+    if let Some(w) = app.get_webview_window(UPDATE) {
+        let _ = w.close();
+    }
+}
+
 pub fn toggle_dashboard(app: &AppHandle) {
     match app.get_webview_window(DASHBOARD) {
         Some(w) if w.is_visible().unwrap_or(false) && w.is_focused().unwrap_or(false) => {
@@ -321,9 +358,9 @@ pub mod zorder {
     };
     use windows_sys::Win32::UI::Accessibility::{SetWinEventHook, HWINEVENTHOOK};
     use windows_sys::Win32::UI::WindowsAndMessaging::{
-        GetClassNameW, GetForegroundWindow, GetWindowRect, SetWindowPos, EVENT_SYSTEM_FOREGROUND,
-        HWND_NOTOPMOST, HWND_TOPMOST, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOOWNERZORDER, SWP_NOSIZE,
-        WINEVENT_OUTOFCONTEXT, WINEVENT_SKIPOWNPROCESS,
+        FindWindowW, GetClassNameW, GetForegroundWindow, GetWindowRect, IsWindowVisible,
+        SetWindowPos, EVENT_SYSTEM_FOREGROUND, HWND_NOTOPMOST, HWND_TOPMOST, SWP_NOACTIVATE,
+        SWP_NOMOVE, SWP_NOOWNERZORDER, SWP_NOSIZE, WINEVENT_OUTOFCONTEXT, WINEVENT_SKIPOWNPROCESS,
     };
 
     static TARGET: AtomicIsize = AtomicIsize::new(0);
@@ -365,6 +402,16 @@ pub mod zorder {
             .then_some(fg)
     }
 
+    /// A context menu is open (the widget's or tray's own, or any other app's). Menus are
+    /// topmost windows too: lifting the widget now would put it over the menu, which is what
+    /// hid the widget's right-click menu behind the widget.
+    unsafe fn menu_open() -> bool {
+        // "#32768" is the window class of every popup menu
+        let class: Vec<u16> = "#32768\0".encode_utf16().collect();
+        let m = FindWindowW(class.as_ptr(), std::ptr::null());
+        !m.is_null() && IsWindowVisible(m) != 0
+    }
+
     /// Put the widget on top, or just behind a full-screen app (a topmost window would
     /// otherwise cover the video or game, which the taskbar itself never does).
     pub fn raise() {
@@ -373,6 +420,9 @@ pub mod zorder {
             return;
         }
         unsafe {
+            if menu_open() {
+                return;
+            }
             if let Some(fg) = fullscreen_over(h) {
                 SetWindowPos(h, HWND_NOTOPMOST, 0, 0, 0, 0, FLAGS);
                 SetWindowPos(h, fg, 0, 0, 0, 0, FLAGS);

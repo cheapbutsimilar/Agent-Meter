@@ -57,6 +57,17 @@ jobs:
         if: steps.key.outputs.ok == 'true'
       - run: npm install
         if: steps.key.outputs.ok == 'true'
+      - name: Patch notes for this version
+        id: notes
+        if: steps.key.outputs.ok == 'true'
+        shell: bash
+        run: |
+          node scripts/release-notes.js
+          {
+            echo 'body<<AGENTMETER_NOTES_END'
+            cat release-notes.md
+            echo 'AGENTMETER_NOTES_END'
+          } >> "$GITHUB_OUTPUT"
       - uses: tauri-apps/tauri-action@v0
         if: steps.key.outputs.ok == 'true'
         env:
@@ -68,7 +79,8 @@ jobs:
         with:
           tagName: v__VERSION__
           releaseName: AgentMeter v__VERSION__
-          releaseBody: '자동 빌드 · ${{ github.sha }}'
+          # shown in the app's update popup (latest.json notes) and on the release page
+          releaseBody: ${{ steps.notes.outputs.body }}
           releaseDraft: false
           prerelease: false
           releaseCommitish: ${{ github.sha }}

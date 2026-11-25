@@ -1,0 +1,220 @@
+/* "새 버전이 나왔어요" window. No inline <style>: Tauri's CSP hash would disable style="". */
+html,
+body {
+  height: 100%;
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 13px;
+  line-height: 1.5;
+  overflow: hidden;
+  user-select: none;
+}
+.upd {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  border: 1px solid var(--line-strong);
+  box-sizing: border-box;
+}
+.bar {
+  flex: none;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 0 6px 0 16px;
+  background: var(--bg-sunken);
+  border-bottom: 1px solid var(--line);
+  font-size: 12.5px;
+}
+.bar .mark {
+  width: 11px;
+  height: 11px;
+  border-radius: 3px;
+  background: var(--accent);
+  box-shadow: inset 0 0 0 3px rgba(0, 0, 0, 0.18);
+}
+.bar .sp {
+  flex: 1;
+  height: 100%;
+}
+.x {
+  width: 32px;
+  height: 28px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-2);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+.x:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+.x svg {
+  width: 13px;
+  height: 13px;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  fill: none;
+}
+main {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 24px 26px 8px;
+}
+.badge {
+  display: inline-block;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-line);
+  border-radius: 999px;
+  padding: 1px 9px;
+}
+h1 {
+  margin: 12px 0 4px;
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+.ver {
+  margin: 0;
+  color: var(--text-2);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.ver b {
+  color: var(--text);
+}
+.ver .arrow {
+  color: var(--text-3);
+  margin: 0 6px;
+}
+h2 {
+  margin: 22px 0 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-3);
+}
+.notes {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 9px;
+}
+.notes li {
+  position: relative;
+  padding-left: 16px;
+  line-height: 1.55;
+  user-select: text;
+}
+.notes li::before {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 0.62em;
+  width: 6px;
+  height: 6px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+.notes li.more {
+  color: var(--text-3);
+  padding-left: 0;
+}
+.notes li.more::before {
+  display: none;
+}
+.link {
+  margin-top: 14px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.link:hover {
+  text-decoration: underline;
+}
+.status {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 26px 0;
+  font-size: 12px;
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}
+.status[hidden] {
+  display: none;
+}
+.status.err {
+  color: var(--danger-text);
+}
+.track {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--meter-ok-track);
+  overflow: hidden;
+}
+.track i {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: var(--accent);
+  transition: width 0.25s;
+}
+.status.err .track {
+  display: none;
+}
+footer {
+  flex: none;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 16px 22px 20px;
+}
+.btn {
+  height: 34px;
+  padding: 0 16px;
+  border-radius: 8px;
+  border: 1px solid var(--line-strong);
+  background: var(--bg-hover);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn:hover {
+  border-color: var(--text-3);
+}
+.btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+.btn.primary:hover {
+  background: var(--accent-hover);
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.btn[hidden] {
+  display: none;
+}

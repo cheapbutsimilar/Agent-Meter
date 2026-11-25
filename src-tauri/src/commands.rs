@@ -239,6 +239,18 @@ pub fn update_install(app: AppHandle) {
     crate::updater::install_now(&app);
 }
 
+/// "나중에" in the update window. async: it closes a window.
+#[tauri::command]
+pub async fn update_later(app: AppHandle) {
+    crate::updater::later(&app);
+}
+
+/// Every version's patch notes (CHANGELOG.md, stamped with this build's version by CI).
+#[tauri::command]
+pub fn changelog() -> &'static str {
+    include_str!("../../CHANGELOG.md")
+}
+
 #[tauri::command]
 pub fn setup_status() -> Value {
     crate::setup::status()
@@ -270,6 +282,8 @@ pub fn handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Send + Sync + 'static 
         quit_app,
         update_check,
         update_install,
+        update_later,
+        changelog,
         setup_status,
         setup_connect
     ]

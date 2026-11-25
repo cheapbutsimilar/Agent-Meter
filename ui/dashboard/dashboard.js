@@ -10,6 +10,9 @@
 
   const S = await api.init();
   let page = S.page || new URLSearchParams(location.search).get('page') || 'overview';
+  // "전체 패치노트 보기" from the update window opens 일반 with the notes on top
+  const startWithNotes = page === 'notes';
+  if (startWithNotes) page = 'general';
   const ui = {
     metric: 'tokens',
     range: 30,
@@ -610,16 +613,23 @@
     const u = S.update || {};
     const updBtn =
       u.state === 'available'
-        ? `<button class="btn sm primary" data-act="update-install">설치하고 다시 시작</button>`
+        ? `<button class="btn sm primary" data-act="update-install">지금 업데이트</button>`
         : `<button class="btn sm" data-act="update-check" ${updateBusy() ? 'disabled' : ''}>업데이트 확인</button>`;
     html += row(`현재 버전 <span class="ver">v${esc(S.version || '')}</span>`, updateText(), updBtn);
+    html += row('패치노트', '버전마다 무엇이 바뀌었는지 볼 수 있어요', `<button class="btn sm" data-act="notes">패치노트 보기</button>`);
+    const devBuild = u.auto === false;
     html += row(
-      '자동 업데이트',
-      u.auto === false ? '직접 빌드한 버전이라 자동으로 설치하지 않아요. 확인 버튼으로만 업데이트해요.' : '새 버전이 나오면 알림을 띄우고 설치한 뒤 다시 시작해요 (3시간마다 확인)',
+      '자동으로 확인',
+      devBuild ? '직접 빌드한 버전이라 자동으로 확인하지 않아요. 위 버튼으로만 업데이트해요.' : '3시간마다 새 버전을 확인하고, 있으면 알림과 함께 지금 업데이트할지 물어봐요',
       sw('data-set="autoUpdate"', s.autoUpdate !== false),
     );
+    html += row(
+      '묻지 않고 설치',
+      '확인 창 없이 바로 내려받아 설치하고 다시 시작해요',
+      sw(`data-set="updateSilent" ${devBuild || s.autoUpdate === false ? 'disabled' : ''}`, !!s.updateSilent),
+    );
     html += `</div><h2>정보</h2><div class="card rows">`;
-    html += row('개인정보', '사용 기록은 이 컴퓨터에서만 처리해요. 네트워크 요청은 Claude · Codex · Gemini 공식 사용량 엔드포인트, 업데이트 확인(GitHub), 환율 조회(open.er-api.com)로만 보내요.', '');
+    html += row('개인정보', '사용 기록은 이 컴퓨터에서만 처리해요. 네트워크 요청은 Claude · Codex · Gemini 공식 사용량 엔드포인트, Claude 로그인 갱신, 업데이트 확인(GitHub), 환율 조회(open.er-api.com)로만 보내요.', '');
     html += row('비용 환산', 'Anthropic · OpenAI · Google · xAI 공개 API 정가 기준 추정치예요. 구독 요금과는 달라요.', '');
     html += row('로고', 'Claude, Codex(OpenAI), Gemini(Google), Grok(xAI) 로고는 각 회사의 상표이며 사용 중인 서비스를 표시하는 용도로만 써요.', '');
     html += `</div>`;
@@ -651,9 +661,68 @@
     const u = S.update || {};
     const el = $('#tb-update');
     const busy = u.state === 'downloading' || u.state === 'installing';
-    el.hidden = !busy;
+    el.hidden = !(busy || u.state === 'available');
+    el.disabled = busy;
     if (busy) el.textContent = u.state === 'installing' ? `v${u.version} 설치 중…` : `v${u.version} 내려받는 중 ${u.progress || 0}%`;
+    else if (u.state === 'available') el.textContent = `새 버전 v${u.version}`;
   }
+
+  // ---------------------------------------------------------------- patch notes
+  let changelog = null;
+  async function openNotes() {
+    const m = $('#notes-modal');
+    m.hidden = false;
+    if (changelog == null) {
+      $('#notes-body').innerHTML = '<div class="empty">불러오는 중…</div>';
+      try {
+        changelog = U.parseChangelog(await api.changelog());
+      } catch (_) {
+        changelog = [];
+      }
+    }
+    renderNotes();
+    $('#notes-modal .modal-body').scrollTop = 0;
+    m.querySelector('[data-close]').focus();
+  }
+  function closeNotes() {
+    $('#notes-modal').hidden = true;
+  }
+  function renderNotes() {
+    const u = S.update || {};
+    const cur = `v${S.version || ''}`;
+    const list = (items) => `<ul>${items.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>`;
+    let html = '';
+    if (u.version && ['available', 'downloading', 'installing'].includes(u.state)) {
+      const items = U.noteItems(u.notes);
+      const busy = u.state !== 'available';
+      html +=
+        `<section class="rel new"><div class="rh"><b>v${esc(u.version)}</b><span class="tag accent">새 버전</span><span class="sp"></span>` +
+        `<button class="btn sm primary" data-act="update-install" ${busy ? 'disabled' : ''}>${busy ? esc(updateText().replace(/<[^>]+>/g, '')) : '지금 업데이트'}</button></div>` +
+        `${list(items.length ? items : ['버그 수정과 개선'])}</section>`;
+    }
+    for (const r of changelog || []) {
+      if (u.version && r.version === `v${u.version}`) continue;
+      const isCur = r.version === cur;
+      html +=
+        `<section class="rel${isCur ? ' cur' : ''}"><div class="rh"><b>${esc(r.version)}</b>${isCur ? '<span class="tag">지금 쓰는 버전</span>' : ''}` +
+        `<span class="sp"></span><span class="date">${esc(r.date)}</span></div>${list(r.items)}</section>`;
+    }
+    $('#notes-body').innerHTML = html || '<div class="empty">패치노트가 없어요</div>';
+  }
+  $('#notes-modal').addEventListener('click', (e) => {
+    if (e.target.closest('[data-close]') || e.target.id === 'notes-modal') return closeNotes();
+    const b = e.target.closest('[data-act="update-install"]');
+    if (b && !b.disabled) {
+      S.update = { ...(S.update || {}), state: 'downloading', progress: 0 };
+      renderNotes();
+      updateBadge();
+      api.updateInstall();
+    }
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !$('#notes-modal').hidden) closeNotes();
+  });
+  $('#tb-update').addEventListener('click', () => openNotes());
 
   // ---------------------------------------------------------------- render & events
   const PAGES = { overview, analytics, display, appearance, agents, alerts, general };
@@ -757,6 +826,9 @@
         S.update = { ...(S.update || {}), state: 'downloading', progress: 0 };
         render();
         api.updateInstall();
+        break;
+      case 'notes':
+        openNotes();
         break;
       case 'opts-reset': {
         const defaults = {
@@ -990,7 +1062,12 @@
   });
   api.on('event', (ev) => {
     if (!ev) return;
-    if (ev.type === 'navigate' && ev.page) go(ev.page);
+    if (ev.type === 'navigate' && ev.page) {
+      if (ev.page === 'notes') {
+        go('general');
+        openNotes();
+      } else go(ev.page);
+    }
     if (ev.type === 'fx') {
       S.fx = ev.fx;
       if (!typing()) render();
@@ -1001,8 +1078,11 @@
       if (!typing()) render();
     }
     if (ev.type === 'update') {
-      S.update = ev.update;
+      // keep what is known about a found version through a background "checking" blip
+      const keep = ev.update.state === 'checking' && S.update && S.update.version ? S.update : null;
+      S.update = keep || ev.update;
       updateBadge();
+      if (!$('#notes-modal').hidden) renderNotes();
       if (page === 'general' && !typing()) render();
     }
     if (ev.type === 'hotkeys') {
@@ -1012,6 +1092,7 @@
   });
 
   render(false);
+  if (startWithNotes) openNotes();
   $('#tb-ver').textContent = S.version ? `v${S.version}` : '';
   updateBadge();
   setInterval(updateStatus, 5000);

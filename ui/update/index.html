@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <title>AgentMeter 업데이트</title>
+    <link rel="stylesheet" href="../shared/tokens.css" />
+    <link rel="stylesheet" href="./update.css" />
+  </head>
+  <body>
+    <div class="upd">
+      <header class="bar" data-tauri-drag-region>
+        <span class="mark"></span><b data-tauri-drag-region>AgentMeter</b>
+        <span class="sp" data-tauri-drag-region></span>
+        <button class="x" data-act="later" title="나중에" aria-label="닫기">
+          <svg viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8" /></svg>
+        </button>
+      </header>
+      <main>
+        <span class="badge">NEW</span>
+        <h1>새 버전이 나왔어요</h1>
+        <p class="ver" id="ver"></p>
+        <h2>이번 업데이트</h2>
+        <ul class="notes" id="notes"></ul>
+        <button class="link" data-act="all">전체 패치노트 보기</button>
+      </main>
+      <div class="status" id="status" hidden>
+        <div class="track"><i id="bar"></i></div>
+        <span id="status-text"></span>
+      </div>
+      <footer>
+        <button class="btn" data-act="later" id="btn-later">나중에</button>
+        <button class="btn primary" data-act="install" id="btn-install">지금 업데이트</button>
+      </footer>
+    </div>
+    <script src="../shared/bridge.js"></script>
+    <script src="../shared/util.js"></script>
+    <script src="../shared/theme.js"></script>
+    <script src="./update.js"></script>
+  </body>
+</html>
