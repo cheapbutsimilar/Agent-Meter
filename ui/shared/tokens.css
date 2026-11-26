@@ -1,7 +1,7 @@
 /* AgentMeter design tokens — base #2B2B2B, key color #F05C1A */
 :root {
-  --font: 'Pretendard Variable', Pretendard, 'Segoe UI Variable Text', 'Segoe UI', 'Malgun Gothic', 'Apple SD Gothic Neo',
-    system-ui, sans-serif;
+  --font: 'Pretendard Variable', Pretendard, SUIT, 'Segoe UI Variable Text', 'Segoe UI', 'Malgun Gothic', 'Apple SD Gothic Neo',
+    'Noto Sans KR', system-ui, sans-serif;
   --mono: 'JetBrains Mono', 'Cascadia Mono', 'SF Mono', Consolas, monospace;
 
   /* surfaces */

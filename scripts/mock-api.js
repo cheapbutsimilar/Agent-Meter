@@ -278,7 +278,7 @@
     exportCsv: async () => 'C:\\Users\\me\\AppData\\Roaming\\dev.agentmeter.app\\exports\\agentmeter-usage.csv',
     openDataDir: () => {},
     openUrl: () => {},
-    memeSound: () => {},
+    memeSound: async () => {},
     qwenPick: async () => null,
     quit: () => {},
     on: (ch, cb) => {

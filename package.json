@@ -1,7 +1,7 @@
 {
   "name": "agentmeter",
   "private": true,
-  "version": "0.2.33",
+  "version": "0.2.34",
   "description": "Claude · Codex · Gemini · Grok 사용량 모니터 — 작업표시줄 / 이동 위젯 (Rust + Tauri)",
   "license": "MIT",
   "scripts": {

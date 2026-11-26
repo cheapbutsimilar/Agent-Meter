@@ -115,9 +115,10 @@
       const ws = U.visibleWindows(p, settings, o);
       const active = U.isActive(p, now) ? `<span class="live" title="${esc(tr('w.working'))}"></span>` : '';
       const bubble = meme(p, ws, now);
-      let html = `<div class="prov${bubble ? ' has-meme' : ''}" data-id="${p.id}" title="${esc(tooltip(p, settings, now))}">${bubble}`;
+      let html = `<div class="prov" data-id="${p.id}" title="${esc(tooltip(p, settings, now))}">`;
       if (o.logo) html += `<span class="lg">${logo(p.id, h >= 34 ? 18 : 16)}${active}</span>`;
       if (o.name) html += `<span class="nm">${esc(p.name)}</span>`;
+      if (bubble) html += bubble;
       if (!ws.length) {
         html += `<span class="tok">${U.fmtNum(p.tokens.today)}</span>`;
       }
@@ -190,10 +191,11 @@
       if (o.logo) html += logo(p.id, 18);
       if (o.name) html += `<span class="nm">${esc(p.name)}</span>`;
       if (p.plan) html += `<span class="plan">${esc(p.plan)}</span>`;
-      html += meme(p, ws, now);
       html += `<span class="sp"></span>`;
       if (U.isActive(p, now)) html += `<span class="state live-t"><i class="live"></i>${esc(tr('w.working'))}</span>`;
       html += `</div>`;
+      const bubble = meme(p, ws, now);
+      if (bubble) html += `<div class="mrow">${bubble}</div>`;
       for (const w of ws) {
         const sev = U.severity(w.usedPercent, settings.alertThresholds);
         const val = U.shown(w, settings);

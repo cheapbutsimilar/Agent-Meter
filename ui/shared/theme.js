@@ -61,10 +61,11 @@
     const c = resolve(s.theme);
     const dark = c.scheme === 'dark';
     const { bg, fg, accent } = c;
+    const raised = dark ? mix(bg, fg, 0.045) : mix(bg, '#ffffff', 0.7);
     const v = {
       '--bg': bg,
       '--bg-sunken': dark ? mix(bg, '#000000', 0.16) : mix(bg, '#000000', 0.035),
-      '--bg-raised': dark ? mix(bg, fg, 0.045) : mix(bg, '#ffffff', 0.7),
+      '--bg-raised': raised,
       '--bg-hover': mix(bg, fg, dark ? 0.09 : 0.07),
       '--bg-input': dark ? mix(bg, '#000000', 0.1) : mix(bg, '#ffffff', 0.5),
       '--line': `rgba(${csv(fg)}, 0.08)`,
@@ -82,6 +83,13 @@
       '--meter-ok-track': `rgba(${csv(fg)}, 0.12)`,
       '--meter-warn': accent,
       '--meter-warn-track': `rgba(${csv(accent)}, 0.22)`,
+      // the meme bubble: a tint of the accent (or red once a limit is gone) over raised surfaces
+      '--meme-bg': mix(raised, accent, dark ? 0.2 : 0.14),
+      '--meme-line': `rgba(${csv(accent)}, ${dark ? 0.5 : 0.42})`,
+      '--meme-fg': dark ? mix(accent, '#ffffff', 0.58) : mix(accent, '#000000', 0.22),
+      '--meme-bg-done': mix(raised, '#ff453a', dark ? 0.2 : 0.12),
+      '--meme-line-done': `rgba(255, 69, 58, ${dark ? 0.5 : 0.42})`,
+      '--meme-fg-done': dark ? mix('#ff453a', '#ffffff', 0.5) : mix('#ff453a', '#000000', 0.3),
       '--pace': `rgba(${csv(fg)}, 0.75)`,
       '--bg-rgb': csv(bg),
       '--fg-rgb': csv(fg),
