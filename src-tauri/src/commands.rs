@@ -300,6 +300,67 @@ pub async fn antigravity_pick(app: AppHandle) -> Result<Option<String>, String> 
     Ok(Some(path.to_string_lossy().into_owned()))
 }
 
+/// The dashboard's usage receipt as a PNG (`data:image/png;base64,…`) → the clipboard image.
+/// The dashboard sends exactly the PNG it shows, so what gets pasted into a tweet is what
+/// the user saw. async + main thread: macOS needs the pasteboard touched there.
+#[tauri::command]
+pub async fn receipt_copy_png(app: AppHandle, png: String) -> Result<(), String> {
+    let bytes = receipt_png_bytes(&png)?;
+    let (tx, rx) = std::sync::mpsc::channel();
+    app.run_on_main_thread(move || {
+        let _ = tx.send(set_clipboard_image(&bytes));
+    })
+    .map_err(|e| e.to_string())?;
+    rx.recv_timeout(Duration::from_secs(10))
+        .map_err(|_| "클립보드가 응답하지 않아요".to_string())?
+}
+
+/// "PNG 저장": the same receipt written where the user points. None when the dialog was closed.
+#[tauri::command]
+pub async fn receipt_save_png(app: AppHandle, png: String) -> Result<Option<String>, String> {
+    use tauri_plugin_dialog::DialogExt;
+    let bytes = receipt_png_bytes(&png)?;
+    let picked = app
+        .dialog()
+        .file()
+        .set_title("AgentMeter receipt")
+        .set_file_name("AgentMeter-receipt.png")
+        .add_filter("PNG", &["png"])
+        .blocking_save_file();
+    let Some(path) = picked.and_then(|p| p.into_path().ok()) else {
+        return Ok(None);
+    };
+    std::fs::write(&path, bytes).map_err(|e| e.to_string())?;
+    Ok(Some(path.to_string_lossy().into_owned()))
+}
+
+/// "data:image/png;base64,…" (or the bare base64) → PNG bytes.
+fn receipt_png_bytes(png: &str) -> Result<Vec<u8>, String> {
+    use base64::Engine;
+    let data = png
+        .strip_prefix("data:image/png;base64,")
+        .unwrap_or(png)
+        .trim();
+    base64::engine::general_purpose::STANDARD
+        .decode(data)
+        .map_err(|e| e.to_string())
+}
+
+fn set_clipboard_image(bytes: &[u8]) -> Result<(), String> {
+    let img = image::load_from_memory_with_format(bytes, image::ImageFormat::Png)
+        .map_err(|e| e.to_string())?
+        .to_rgba8();
+    let (w, h) = (img.width(), img.height());
+    arboard::Clipboard::new()
+        .map_err(|e| e.to_string())?
+        .set_image(arboard::ImageData {
+            width: w as usize,
+            height: h as usize,
+            bytes: std::borrow::Cow::Owned(img.into_raw()),
+        })
+        .map_err(|e| e.to_string())
+}
+
 /// Qwen Code's home folder (holding `projects/`), picked by hand.
 #[tauri::command]
 pub async fn qwen_pick(app: AppHandle) -> Result<Option<String>, String> {
@@ -346,7 +407,9 @@ pub fn handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Send + Sync + 'static 
         setup_status,
         setup_connect,
         antigravity_pick,
-        qwen_pick
+        qwen_pick,
+        receipt_copy_png,
+        receipt_save_png
     ]
 }
 

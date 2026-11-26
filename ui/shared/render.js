@@ -53,8 +53,8 @@
     return lines.join('\n');
   }
 
-  /** Korean UI only: a little speech bubble when an agent's tightest shown limit is
-   * nearly out (≤ 5% left) or gone (0%). Windows without a reading or already reset don't count.
+  /** A little speech bubble when an agent's tightest shown limit is nearly out (≤ 5% left)
+   * or gone (0%). Windows without a reading or already reset don't count.
    * The bubble shows once per crossing for MEME_MS, fading in and out; re-renders in between
    * pick the animation up where it is (negative delay), so it never restarts or flickers. */
   const MEME_MS = 5000;
@@ -73,7 +73,6 @@
   }
 
   function meme(p, ws, now) {
-    if (I18N.lang !== 'ko') return '';
     const level = memeLevel(ws);
     const seen = memeSeen[p.id];
     if (!level) {
@@ -95,6 +94,106 @@
     const n = memeNew;
     memeNew = 0;
     return n;
+  }
+
+  // ------------------------------------------------------------------ agent moods
+  // Playful life for the floating card only: the strip stays calm so it never gets in the
+  // way of the taskbar. Two things can happen:
+  //   * chaos encounter — a limit hits 0% (or, rarely, nothing at all): the card bounces and
+  //     the agent's logo spins, everything stops dead for a moment, then one flat quip
+  //     ("ㅋㅋ" in Korean, "bruh." in every other language) before it quietly goes back to normal.
+  //   * a click on an agent — a random little mood (blush, sweat, dizzy, hearts, sleepy).
+  // Every stage is keyed to elapsed time, so a re-render in the middle picks the animation up
+  // where it is instead of restarting it (the widget re-renders on stage boundaries).
+  const CHAOS_FIT = 1800; // bounce + spin
+  const CHAOS_STILL = 4800; // everything frozen (3 s of stillness)
+  const CHAOS_LINE = 7800; // one quip, then done
+  const RANDOM_GAP = 30 * 60 * 1000; // no sudden chaos more often than this
+  const MOOD_MS = 2600;
+  const MOODS = [
+    { id: 'blush', emoji: '😳', keys: ['w.mood.blush', 'w.mood.blush2'] },
+    { id: 'sweat', emoji: '💦', keys: ['w.mood.sweat', 'w.mood.sweat2'] },
+    { id: 'dizzy', emoji: '💫', keys: ['w.mood.dizzy', 'w.mood.dizzy2'] },
+    { id: 'love', emoji: '💗', keys: ['w.mood.love', 'w.mood.love2'] },
+    { id: 'sleep', emoji: '💤', keys: ['w.mood.sleep', 'w.mood.sleep2'] },
+  ];
+  // chaos: {id, at}, mood: {id, at, kind, emoji, line}; the first roll waits for the app to settle
+  const moodFx = { chaos: null, mood: null, lastRandom: Date.now(), lastRoll: 0 };
+  const chaosSeen = {}; // provider id -> a 0% limit already got its encounter
+  const pickOne = (a) => a[Math.floor(Math.random() * a.length)];
+
+  function startChaos(id, now) {
+    if (!id) return false;
+    moodFx.chaos = { id, at: now };
+    moodFx.mood = null;
+    return true;
+  }
+
+  function startMood(id, now, kind) {
+    if (!id) return false;
+    const m = (kind && MOODS.find((x) => x.id === kind)) || pickOne(MOODS);
+    moodFx.mood = { id, at: now, kind: m.id, emoji: m.emoji, line: pickOne(m.keys) };
+    return true;
+  }
+
+  /** Where the encounter is right now (null once it is over). */
+  function chaosStage(c, now) {
+    const age = now - c.at;
+    if (age < CHAOS_FIT) return { stage: 'bounce', age: Math.max(0, age) };
+    if (age < CHAOS_STILL) return { stage: 'still', age };
+    if (age < CHAOS_LINE) return { stage: 'line', age: age - CHAOS_STILL };
+    return null;
+  }
+
+  /** ms until the encounter's next stage (0 when there is none) — widget.js re-renders then. */
+  function chaosNext(now = Date.now()) {
+    if (!moodFx.chaos) return 0;
+    const age = now - moodFx.chaos.at;
+    for (const t of [CHAOS_FIT, CHAOS_STILL, CHAOS_LINE]) if (age < t) return Math.max(40, t - age);
+    return 0;
+  }
+
+  /** Drop finished effects, spot a limit that just hit 0%, and now and then cause trouble. */
+  function advanceFx(list, settings, now) {
+    if (moodFx.chaos && !chaosStage(moodFx.chaos, now)) moodFx.chaos = null;
+    if (moodFx.mood && now - moodFx.mood.at >= MOOD_MS) moodFx.mood = null;
+    if (settings && settings.moods === false) {
+      moodFx.chaos = null;
+      moodFx.mood = null;
+      for (const p of list) delete chaosSeen[p.id];
+      return;
+    }
+    for (const p of list) {
+      const done = memeLevel(U.visibleWindows(p, settings, settings.floating)) === 'done';
+      if (!done) {
+        delete chaosSeen[p.id];
+      } else if (!chaosSeen[p.id] && !moodFx.chaos) {
+        chaosSeen[p.id] = true;
+        startChaos(p.id, now);
+      }
+    }
+    // one roll every few seconds at most, so fast re-renders (the settings preview) don't spam it
+    if (!moodFx.chaos && list.length && now - moodFx.lastRoll > 5000 && now - moodFx.lastRandom > RANDOM_GAP) {
+      moodFx.lastRoll = now;
+      if (Math.random() < 0.04) {
+        moodFx.lastRandom = now;
+        startChaos(pickOne(list).id, now);
+      }
+    }
+  }
+
+  /** A click on an agent in the card (widget.js). */
+  function poke(id, settings, now = Date.now()) {
+    if (settings && settings.moods === false) return false;
+    return startMood(id, now);
+  }
+
+  /** The settings page previews both, without waiting for a 0% limit. */
+  function previewChaos(id, now = Date.now()) {
+    return startChaos(id, now);
+  }
+  function previewMood(id, now = Date.now()) {
+    return startMood(id, now);
   }
 
   function shownProviders(usage, settings) {
@@ -177,7 +276,10 @@
     const { usage, settings, system, now } = ctx;
     const o = settings.floating;
     const list = shownProviders(usage, settings);
-    let html = `<div class="w floating" style="--op:${settings.opacity}">`;
+    advanceFx(list, settings, now);
+    const chaos = moodFx.chaos ? chaosStage(moodFx.chaos, now) : null;
+    const timing = chaos && chaos.stage === 'bounce' ? `;animation-delay:-${Math.round(chaos.age)}ms` : '';
+    let html = `<div class="w floating${chaos ? ` chaos-${chaos.stage}` : ''}" style="--op:${settings.opacity}${timing}">`;
     html += `<header class="head"><span class="mark"></span><span class="ttl">AgentMeter</span><span class="sp"></span>` +
       upd(list, usage, now) +
       `<button class="ib" data-act="refresh" title="${esc(tr('w.refresh'))}">${ICON.refresh}</button>` +
@@ -186,16 +288,26 @@
       `</header>`;
     for (const p of list) {
       const ws = U.visibleWindows(p, settings, o);
-      html += `<section class="prov" data-id="${p.id}">`;
+      const mine = chaos && moodFx.chaos.id === p.id ? chaos : null;
+      const mood = !chaos && moodFx.mood && moodFx.mood.id === p.id ? moodFx.mood : null;
+      html += `<section class="prov${mood ? ` mood-${mood.kind}` : ''}" data-id="${p.id}"` +
+        `${mine ? ` data-fx="${mine.stage}"` : ''}${mood ? ` style="animation-delay:-${Math.round(now - mood.at)}ms"` : ''}>`;
       html += `<div class="ph">`;
       if (o.logo) html += logo(p.id, 18);
       if (o.name) html += `<span class="nm">${esc(p.name)}</span>`;
+      if (mood) html += `<span class="mo" aria-hidden="true" style="animation-delay:-${Math.round(now - mood.at)}ms">${mood.emoji}</span>`;
       if (p.plan) html += `<span class="plan">${esc(p.plan)}</span>`;
       html += `<span class="sp"></span>`;
       if (U.isActive(p, now)) html += `<span class="state live-t"><i class="live"></i>${esc(tr('w.working'))}</span>`;
       html += `</div>`;
-      const bubble = meme(p, ws, now);
+      // during an encounter the 5% bubble keeps quiet: one quip, at the end
+      const bubble = mine
+        ? mine.stage === 'line'
+          ? `<span class="meme quip chaos" style="animation-delay:-${Math.round(mine.age)}ms">${esc(tr('w.chaos.line'))}</span>`
+          : ''
+        : meme(p, ws, now);
       if (bubble) html += `<div class="mrow">${bubble}</div>`;
+      if (mood) html += `<div class="mrow"><span class="meme quip mood" style="animation-delay:-${Math.round(now - mood.at)}ms">${esc(tr(mood.line))}</span></div>`;
       for (const w of ws) {
         const sev = U.severity(w.usedPercent, settings.alertThresholds);
         const val = U.shown(w, settings);
@@ -241,5 +353,23 @@
     return ctx.mode === 'floating' ? floating(ctx) : taskbar(ctx);
   }
 
-  root.AM_RENDER = { widget, takeMemeEvents, MEME_MS, logo, meter, tooltip, resetText, forecastText, shownProviders, ICON };
+  root.AM_RENDER = {
+    widget,
+    takeMemeEvents,
+    MEME_MS,
+    logo,
+    meter,
+    tooltip,
+    resetText,
+    forecastText,
+    shownProviders,
+    ICON,
+    poke,
+    previewChaos,
+    previewMood,
+    chaosNext,
+    MOODS,
+    MOOD_MS,
+    CHAOS_MS: { fit: CHAOS_FIT, still: CHAOS_STILL, line: CHAOS_LINE },
+  };
 })(typeof self !== 'undefined' ? self : this);

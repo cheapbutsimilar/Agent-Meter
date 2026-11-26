@@ -225,6 +225,12 @@ pub struct Settings {
     pub alert_thresholds: Vec<f64>,
     pub notify_reset: bool,
     pub notify_forecast: bool,
+    /// Playful life in the floating card: the chaos encounter when a limit hits 0%, and a
+    /// little mood when an agent is clicked. Off leaves the card completely still.
+    pub moods: bool,
+    /// Monthly plan fee per agent, in USD, for the receipt's "vs subscription" figure.
+    /// An agent missing here uses the built-in price for the plan it reports.
+    pub plan_fees: BTreeMap<String, f64>,
     /// Draw the highest usage as a gauge in the tray icon.
     pub tray_gauge: bool,
     pub launch_at_login: bool,
@@ -281,6 +287,8 @@ impl Default for Settings {
             alert_thresholds: vec![80.0, 95.0],
             notify_reset: true,
             notify_forecast: true,
+            moods: true,
+            plan_fees: BTreeMap::new(),
             tray_gauge: true,
             launch_at_login: false,
             auto_update: true,
@@ -420,6 +428,12 @@ impl Settings {
         self.alert_thresholds
             .sort_by(|a, b| a.partial_cmp(b).unwrap());
         self.alert_thresholds.dedup();
+        self.plan_fees.retain(|id, fee| {
+            PROVIDER_IDS.contains(&id.as_str())
+                && fee.is_finite()
+                && *fee >= 0.0
+                && *fee <= 10_000.0
+        });
     }
 }
 
@@ -513,6 +527,23 @@ mod tests {
         assert_eq!(t.theme.mode, "light");
         assert_eq!(t.theme.font, "system");
         assert_eq!((t.card_width, t.bar_width), (420.0, 40.0));
+        assert!(s.moods, "moods start on");
+        let fees = s.merged(&json!({
+            "planFees": { "claude": 200, "codex": -5, "nope": 10, "zai": 99999 }
+        }));
+        assert_eq!(fees.plan_fees.get("claude").copied(), Some(200.0));
+        assert!(
+            !fees.plan_fees.contains_key("codex"),
+            "negative fees are dropped"
+        );
+        assert!(
+            !fees.plan_fees.contains_key("nope"),
+            "only agents keep a fee"
+        );
+        assert!(
+            !fees.plan_fees.contains_key("zai"),
+            "absurd fees are dropped"
+        );
         assert!(s.docked, "strip starts docked");
 
         let bad = s.merged(&json!({ "mode": "sideways", "valueMode": "x" }));

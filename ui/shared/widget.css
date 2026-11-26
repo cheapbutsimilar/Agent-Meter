@@ -418,3 +418,203 @@
   border-width: 0 5px 6px 5px;
   border-bottom-color: var(--tail-bg);
 }
+
+/* ---------------------------------------------------------------- agent moods
+   render.js: the chaos encounter when a limit hits 0%, and the little moods a click brings.
+   Only the floating card moves — the strip stays calm so it never disturbs the taskbar.
+   Timings mirror CHAOS_* and MOOD_MS in render.js. */
+.w.floating .prov {
+  position: relative;
+  cursor: pointer;
+}
+.w.floating.chaos-bounce {
+  transform-origin: 50% 100%;
+  animation: am-chaos-bounce 0.3s ease-in-out 6 both;
+}
+/* a hop squashed into the card's own box: the widget window is sized to the card, so any
+   move or growth past its edges is cut off there. Only shrinking, anchored at the bottom. */
+@keyframes am-chaos-bounce {
+  0%,
+  100% {
+    transform: scale(1, 1);
+  }
+  22% {
+    transform: scale(0.984, 1);
+  }
+  46% {
+    transform: scale(1, 0.978);
+  }
+  72% {
+    transform: scale(0.994, 0.996);
+  }
+}
+/* the agent's logo whirs round while the card bounces */
+.w.floating .prov[data-fx='bounce'] .logo {
+  animation: am-chaos-spin 0.45s linear infinite;
+}
+@keyframes am-chaos-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+/* the freeze (chaos-still) has no rule on purpose: everything stops dead */
+
+/* the little face that shows up next to the name */
+.w .mo {
+  font-size: 12px;
+  line-height: 1;
+  margin-left: 1px;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45));
+  animation: am-mo 2.6s ease-out both;
+}
+@keyframes am-mo {
+  0% {
+    opacity: 0;
+    transform: translateY(5px) scale(0.5);
+  }
+  16% {
+    opacity: 1;
+    transform: none;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.w.floating .prov.mood-blush {
+  animation: am-mood-blush 2.6s ease-in-out both;
+}
+@keyframes am-mood-blush {
+  0%,
+  100% {
+    transform: none;
+  }
+  15%,
+  45%,
+  75% {
+    transform: translateX(1.5px) rotate(0.25deg);
+  }
+  30%,
+  60%,
+  90% {
+    transform: translateX(-1.5px) rotate(-0.25deg);
+  }
+}
+.w.floating .prov.mood-blush::after,
+.w.floating .prov.mood-love::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(150px 70px at 18% 6%, rgba(255, 108, 140, 0.22), transparent 70%);
+}
+.w.floating .prov.mood-sweat {
+  animation: am-mood-sweat 2.6s ease-in-out both;
+}
+@keyframes am-mood-sweat {
+  0%,
+  100% {
+    transform: none;
+  }
+  20% {
+    transform: translateY(2px);
+  }
+  45% {
+    transform: translateY(-1px);
+  }
+  70% {
+    transform: translateY(1.5px);
+  }
+}
+.w.floating .prov.mood-dizzy {
+  animation: am-mood-dizzy 2.6s ease-in-out both;
+}
+@keyframes am-mood-dizzy {
+  0%,
+  100% {
+    transform: none;
+  }
+  20% {
+    transform: rotate(0.7deg);
+  }
+  40% {
+    transform: rotate(-0.8deg);
+  }
+  60% {
+    transform: rotate(0.6deg);
+  }
+  80% {
+    transform: rotate(-0.4deg);
+  }
+}
+.w.floating .prov.mood-love::before {
+  content: '♥';
+  position: absolute;
+  right: 18px;
+  top: 10px;
+  color: #ff7b96;
+  font-size: 11px;
+  pointer-events: none;
+  animation: am-heart 1.3s ease-out 2 both;
+}
+@keyframes am-heart {
+  0% {
+    opacity: 0;
+    transform: translateY(4px) scale(0.6);
+  }
+  30% {
+    opacity: 0.95;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-14px) scale(1.05);
+  }
+}
+.w.floating .prov.mood-sleep .ph {
+  animation: am-breathe 2.6s ease-in-out both;
+}
+@keyframes am-breathe {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  40% {
+    opacity: 0.55;
+  }
+  60% {
+    opacity: 0.75;
+  }
+}
+
+/* a quip bubble (click mood or the encounter's last line): in, hold, out */
+.w .meme.quip {
+  animation: am-quip 2.6s ease-in-out both;
+}
+@keyframes am-quip {
+  0% {
+    opacity: 0;
+    transform: translateY(4px) scale(0.96);
+  }
+  14%,
+  84% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+.w.floating .mrow .meme.quip {
+  font-size: 11.5px;
+  padding: 4px 9px;
+}
+.w.floating .mrow .meme.quip.chaos {
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  padding: 6px 13px;
+  border-radius: 11px;
+}

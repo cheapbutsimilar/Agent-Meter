@@ -36,6 +36,8 @@
     openDataDir: () => invoke('open_data_dir'),
     openUrl: (url) => invoke('open_url', { url }),
     memeSound: () => invoke('meme_sound'),
+    receiptCopyPng: (png) => invoke('receipt_copy_png', { png }),
+    receiptSavePng: (png) => invoke('receipt_save_png', { png }),
     qwenPick: () => invoke('qwen_pick'),
     quit: () => invoke('quit_app'),
     on: (channel, cb) => {

@@ -1428,3 +1428,104 @@ table.tbl {
 .rel.cur li::before {
   background: var(--accent);
 }
+
+/* ---------------------------------------------------------------- usage receipt
+   The card is a canvas (ui/dashboard/receipt.js), so the PNG shared to X is exactly what
+   is shown here; the right column only sets what goes into it. */
+.rc-modal {
+  width: min(780px, 100%);
+  max-height: min(780px, 100%);
+}
+.seg-rc {
+  margin-left: 18px;
+}
+.rc-body {
+  display: grid;
+  grid-template-columns: 372px minmax(0, 1fr);
+  gap: 22px;
+  align-items: start;
+  padding: 18px 22px 22px;
+}
+.rc-shot {
+  display: flex;
+  justify-content: center;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg-sunken);
+}
+.rc-shot img {
+  display: block;
+  width: 100%;
+  max-width: 352px;
+  height: auto;
+  border-radius: 12px;
+  box-shadow: 0 16px 34px var(--shadow);
+}
+.rc-side {
+  min-height: 180px;
+}
+.rc-fees-h {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-bottom: 8px;
+}
+.rc-fees-h b {
+  font-size: 12.5px;
+}
+.rc-fees-h small {
+  color: var(--text-3);
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+.rc-fee {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 12.5px;
+}
+.rc-fee i {
+  color: var(--text-3);
+  font-style: normal;
+  font-size: 11px;
+}
+.rc-fee input {
+  width: 96px;
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: 7px;
+  background: var(--bg-input);
+  color: var(--text);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.rc-empty {
+  color: var(--text-3);
+  font-size: 12px;
+}
+.rc-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 22px;
+  border-top: 1px solid var(--line);
+}
+.rc-foot .sp {
+  flex: 1;
+}
+.rc-note {
+  color: var(--text-3);
+  font-size: 11px;
+}
+.fx-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}

@@ -29,6 +29,10 @@ serde_json = "1"
 ureq = { version = "2", default-features = false, features = ["tls", "native-certs", "gzip"] }
 sysinfo = { version = "0.33", default-features = false, features = ["system"] }
 tauri-plugin-dialog = "2"
+# The usage receipt: PNG → the OS clipboard (Windows · macOS) and → a file the user picks
+arboard = "3"
+base64 = "0.22"
+image = { version = "0.25", default-features = false, features = ["png"] }
 
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Graphics_Gdi", "Win32_System_Diagnostics_Debug", "Win32_UI_Accessibility", "Win32_UI_WindowsAndMessaging"] }

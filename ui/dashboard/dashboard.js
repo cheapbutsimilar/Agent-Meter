@@ -187,7 +187,9 @@
           : esc(tr('kpi.allOk')),
       ],
     ];
-    let html = pageHead();
+    let html = pageHead(
+      `<button class="btn" data-act="receipt"><svg viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg>${esc(tr('rc.open'))}</button>`,
+    );
     html += `<div class="grid4">${kpis.map(([k, v, s]) => `<div class="card kpi"><div class="k">${k}</div><div class="v">${v}</div><div class="s">${s}</div></div>`).join('')}</div>`;
     const pick = providers()
       .map((p) => {
@@ -407,6 +409,13 @@
     html += `<div class="card"><div class="opts">${OPT_KEYS.map((k) => `<div class="opt"><div class="lb">${esc(tr(`opt.${k}`))}<small>${esc(tr(`opt.${k}.sub`))}</small></div>${sw(`data-opt="${tab}.${k}"`, o[k])}</div>`).join('')}</div></div>`;
 
     html += `<h2>${esc(tr('disp.behavior'))}</h2><div class="card rows">`;
+    html += row(
+      esc(tr('disp.moods')),
+      esc(tr('disp.moods.sub')),
+      `<div class="fx-row">${sw('data-set="moods"', s.moods !== false)}` +
+        `<button class="btn sm" data-act="fx-chaos">${esc(tr('disp.moods.chaos'))}</button>` +
+        `<button class="btn sm" data-act="fx-mood">${esc(tr('disp.moods.mood'))}</button></div>`,
+    );
     html += rowT('disp.onTop', sw('data-set="alwaysOnTop"', s.alwaysOnTop));
     html += rowT('disp.lock', sw('data-set="lockPosition"', s.lockPosition));
     html += rowT('disp.resetPos', `<button class="btn sm" data-act="reset-pos">${esc(tr('disp.resetPos.btn'))}</button>`);
@@ -877,6 +886,24 @@
       case 'notes':
         openNotes();
         break;
+      case 'receipt':
+        window.AM_RECEIPT.open(S, { toast });
+        break;
+      case 'fx-chaos':
+      case 'fx-mood': {
+        // the card preview plays it for real: 8 seconds of the same timeline the widget runs
+        const first = R.shownProviders(S.usage, ui.previewSettings || S.settings)[0];
+        if (!first) break;
+        if (el.dataset.act === 'fx-chaos') R.previewChaos(first.id);
+        else R.previewMood(first.id);
+        const t0 = Date.now();
+        const tick = () => {
+          drawPreviews();
+          if (Date.now() - t0 < 8 * 1000) setTimeout(tick, 120);
+        };
+        tick();
+        break;
+      }
       case 'opts-reset': {
         const defaults = {
           taskbar: { logo: true, name: false, label: true, bar: true, percent: true, reset: true, pace: false, forecast: true, tokens: false, cost: false, system: true, minorWindows: false, gear: true },

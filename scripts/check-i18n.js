@@ -13,13 +13,9 @@ global.self = {};
 require(path.join(ROOT, 'ui', 'shared', 'i18n.js'));
 const { DICT } = global.self.AM_I18N;
 
-/** Strings that exist in one language on purpose (the widget's Korean-only meme bubble). */
-const ONLY = { ko: ['w.meme.hot', 'w.meme.done'] };
-const intended = (k) => Object.values(ONLY).some((keys) => keys.includes(k));
-
 let bad = 0;
 const langs = Object.keys(DICT);
-const all = new Set(langs.flatMap((l) => Object.keys(DICT[l])).filter((k) => !intended(k)));
+const all = new Set(langs.flatMap((l) => Object.keys(DICT[l])));
 for (const l of langs) {
   const missing = [...all].filter((k) => !(k in DICT[l]));
   if (missing.length) {
@@ -38,7 +34,7 @@ for (const f of files) {
   for (const m of src.matchAll(/\b(?:tr|t)\(\s*'([a-zA-Z0-9_.]+)'/g)) used.add(m[1]);
   for (const m of src.matchAll(/data-i18n(?:-title|-html)?="([a-zA-Z0-9_.]+)"/g)) used.add(m[1]);
 }
-const unknown = [...used].filter((k) => !intended(k) && !langs.every((l) => k in DICT[l]));
+const unknown = [...used].filter((k) => !langs.every((l) => k in DICT[l]));
 if (unknown.length) {
   bad += unknown.length;
   console.error(`used in the UI but not in every language:\n  ${unknown.join('\n  ')}`);

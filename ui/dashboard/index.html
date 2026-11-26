@@ -61,6 +61,31 @@
         <div class="modal-body" id="notes-body"></div>
       </div>
     </div>
+    <div class="modal-bg" id="receipt-modal" hidden>
+      <div class="modal rc-modal" role="dialog" aria-modal="true" aria-labelledby="receipt-title">
+        <header>
+          <h2 id="receipt-title" data-i18n="rc.title"></h2>
+          <div class="seg seg-rc" id="rc-period">
+            <button data-rc-period="today" data-i18n="rc.today"></button>
+            <button data-rc-period="week" data-i18n="rc.week"></button>
+            <button data-rc-period="month" data-i18n="rc.month"></button>
+          </div>
+          <span class="sp"></span>
+          <button class="tb-btn" data-close data-i18n-title="tb.close"><svg viewBox="0 0 24 24"><path d="M7 7l10 10M17 7L7 17" /></svg></button>
+        </header>
+        <div class="modal-body rc-body">
+          <div class="rc-shot"><img id="rc-img" alt="" /></div>
+          <div class="rc-side" id="rc-fees"></div>
+        </div>
+        <footer class="rc-foot">
+          <button class="btn primary" data-rc="x" data-i18n="rc.copy"></button>
+          <button class="btn" data-rc="save" data-i18n="rc.save"></button>
+          <button class="btn" data-rc="copy" data-i18n="rc.copyImg"></button>
+          <span class="sp"></span>
+          <span class="rc-note" data-i18n="rc.note"></span>
+        </footer>
+      </div>
+    </div>
     <div id="tip" role="tooltip"></div>
     <div id="toast" role="status"></div>
     <script src="../shared/i18n.js"></script>
@@ -69,6 +94,7 @@
     <script src="../shared/theme.js"></script>
     <script src="../shared/logos.js"></script>
     <script src="../shared/render.js"></script>
+    <script src="./receipt.js"></script>
     <script src="./dashboard.js"></script>
   </body>
 </html>

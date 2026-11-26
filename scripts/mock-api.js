@@ -166,7 +166,7 @@
     opacity: 0.92, scale: 1,
     theme: { mode: 'dark', preset: 'agentmeter', accent: '', bg: '', fg: '', font: 'system', uiScale: 1 },
     barWidth: 58, stripHeight: 40, cardWidth: 312, cornerRadius: 10, alwaysOnTop: true, lockPosition: false, taskbarOffset: null, floatingPos: null,
-    notifications: true, alertThresholds: [80, 95], notifyReset: true, notifyForecast: true, trayGauge: true,
+    notifications: true, alertThresholds: [80, 95], notifyReset: true, notifyForecast: true, moods: true, planFees: {}, trayGauge: true,
     launchAtLogin: false, autoUpdate: true, pollLogsSec: 15, pollApiSec: 180,
     providers: {
       claude: provider({}),
@@ -279,6 +279,8 @@
     openDataDir: () => {},
     openUrl: () => {},
     memeSound: async () => {},
+    receiptCopyPng: async () => {},
+    receiptSavePng: async () => 'C:\\Users\\me\\Downloads\\AgentMeter-receipt.png',
     qwenPick: async () => null,
     quit: () => {},
     on: (ch, cb) => {
