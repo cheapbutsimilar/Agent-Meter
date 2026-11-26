@@ -11,6 +11,10 @@
 
 ## 다음 버전
 
+- MiniMax(M Plan / Token Plan)를 지원해요. 에이전트 → MiniMax에 API 키와 리전(Global / China)을 넣으면 공식 잔여량 API로 5시간 · 주간 한도와 리셋까지 남은 시간을 보여줘요
+- Z.AI(GLM Coding Plan)를 지원해요. API 키와 리전을 넣으면 5시간 · 주간 한도를, 월간 웹검색 · 리더 사용량은 보조 한도로 보여줘요
+- Qwen Code를 지원해요. % 한도 API가 없어서 `~/.qwen` 의 대화 기록으로 토큰과 API 환산 비용을 집계해요 (Qwen Code에서 chat recording을 켜야 기록돼요)
+
 ## v0.2.32 · 2026-11-26
 
 - macOS를 지원해요. Apple Silicon · Intel 공용 `.dmg` 로 설치하고, 메뉴 막대 아이콘과 바탕화면에 떠 있는 위젯(가로형 · 카드형, `PageUp` 전환, 항상 위에)으로 써요

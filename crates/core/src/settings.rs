@@ -4,7 +4,16 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::BTreeMap;
 
-pub const PROVIDER_IDS: [&str; 5] = ["claude", "codex", "gemini", "antigravity", "grok"];
+pub const PROVIDER_IDS: [&str; 8] = [
+    "claude",
+    "codex",
+    "gemini",
+    "antigravity",
+    "grok",
+    "minimax",
+    "zai",
+    "qwen",
+];
 pub const SETTINGS_VERSION: u32 = 3;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -28,6 +37,13 @@ pub struct ProviderConfig {
     /// Antigravity only: the official agy.exe's absolute path. Empty finds it on its own
     /// (`where agy`, then the default install folders).
     pub antigravity_path: String,
+    /// MiniMax and Z.AI: the API key their usage endpoints take (kept in this settings file).
+    pub api_key: String,
+    /// MiniMax and Z.AI: which platform the key belongs to, "global" or "china".
+    pub region: String,
+    /// Qwen only: the Qwen Code home folder (holding `projects/`). Empty: `QWEN_HOME`,
+    /// then `~/.qwen`.
+    pub log_path: String,
 }
 
 impl Default for ProviderConfig {
@@ -42,6 +58,9 @@ impl Default for ProviderConfig {
             budget_week: 0.0,
             command: String::new(),
             antigravity_path: String::new(),
+            api_key: String::new(),
+            region: "global".into(),
+            log_path: String::new(),
         }
     }
 }
@@ -333,6 +352,20 @@ impl Settings {
     }
 
     fn sanitize(&mut self) {
+        for c in self.providers.values_mut() {
+            if c.region != "global" && c.region != "china" {
+                c.region = "global".into();
+            }
+            // keys are pasted: drop surrounding blanks and an accidental "Bearer " prefix
+            let key = c.api_key.trim();
+            let key = key.strip_prefix("Bearer ").unwrap_or(key).trim();
+            c.api_key = key
+                .chars()
+                .filter(|ch| !ch.is_control())
+                .take(512)
+                .collect();
+            c.log_path = c.log_path.trim().chars().take(1024).collect();
+        }
         if self.mode != "taskbar" && self.mode != "floating" {
             self.mode = "floating".into();
         }

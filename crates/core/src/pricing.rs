@@ -78,6 +78,19 @@ const GROK: &[(&str, Price)] = &[
     ("grok-3", p(3.0, 15.0, 3.0, 0.75)),
 ];
 
+// Qwen Code: Alibaba Cloud Model Studio international list prices (lowest tier).
+const QWEN: &[(&str, Price)] = &[
+    ("qwen3-coder-flash", p(0.30, 1.50, 0.30, 0.06)),
+    ("qwen3-coder-plus", p(1.0, 5.0, 1.0, 0.20)),
+    ("qwen3-coder", p(1.0, 5.0, 1.0, 0.20)),
+    ("coder-model", p(1.0, 5.0, 1.0, 0.20)),
+    ("qwen3-max", p(1.2, 6.0, 1.2, 0.24)),
+    ("qwen-max", p(1.6, 6.4, 1.6, 0.32)),
+    ("qwen-plus", p(0.40, 1.20, 0.40, 0.08)),
+    ("qwen-flash", p(0.05, 0.40, 0.05, 0.01)),
+    ("qwen-turbo", p(0.05, 0.20, 0.05, 0.01)),
+];
+
 /// Price for a model id as it appears in the logs (date suffixes and dots are fine).
 pub fn price(provider: &str, model: &str) -> Option<Price> {
     let m = model.to_ascii_lowercase().replace(['.', '_'], "-");
@@ -86,6 +99,7 @@ pub fn price(provider: &str, model: &str) -> Option<Price> {
         "codex" => OPENAI,
         "gemini" => GEMINI,
         "grok" => GROK,
+        "qwen" => QWEN,
         _ => return None,
     };
     table
@@ -130,6 +144,8 @@ mod tests {
         assert_eq!(price("codex", "gpt-5.3-codex").unwrap().input, 1.25);
         assert_eq!(price("gemini", "gemini-2.5-pro").unwrap().output, 10.0);
         assert_eq!(price("grok", "grok-code-fast-1").unwrap().output, 1.5);
+        assert_eq!(price("qwen", "qwen3-coder-plus").unwrap().input, 1.0);
+        assert_eq!(price("qwen", "qwen3-coder-flash").unwrap().output, 1.5);
         assert!(price("claude", "<synthetic>").is_none());
         assert!(price("unknown", "gpt-5").is_none());
     }

@@ -4,7 +4,7 @@
 
 # AgentMeter
 
-**Claude Code · Codex · Gemini CLI · Antigravity · Grok** 의 한도와 사용량을<br>
+**Claude Code · Codex · Gemini CLI · Antigravity · Grok · MiniMax · Z.AI · Qwen** 의 한도와 사용량을<br>
 Windows 작업표시줄 · Mac 메뉴 막대 · 바탕화면에서 바로 보는 데스크톱 위젯
 
 [![최신 릴리스](https://img.shields.io/github/v/release/cheapbutsimilar/Agent-Meter?style=flat-square&color=F05C1A&label=release)](https://github.com/cheapbutsimilar/Agent-Meter/releases/latest)
@@ -36,7 +36,7 @@ AgentMeter는 각 서비스의 공식 한도 %와 내 컴퓨터의 로그를 모
 
 | | |
 | --- | --- |
-| **공식 한도 %** | Claude 5시간 · 주간 · 모델별 한도(예: Fable), Codex 5시간 · 주간(계정 전체), Gemini CLI 일일 할당량, Antigravity CLI 5시간 · 주간 한도(Windows)를 각 서비스에서 그대로 가져옵니다. Gemini CLI와 Antigravity는 별도 에이전트라 둘 다 쓰면 나란히 볼 수 있습니다. 에이전트를 쓰는 중이면 1분 안에 다시 확인합니다. |
+| **공식 한도 %** | Claude 5시간 · 주간 · 모델별 한도(예: Fable), Codex 5시간 · 주간(계정 전체), Gemini CLI 일일 할당량, Antigravity CLI 5시간 · 주간 한도(Windows)를 각 서비스에서 그대로 가져옵니다. Gemini CLI와 Antigravity는 별도 에이전트라 둘 다 쓰면 나란히 볼 수 있습니다. 에이전트를 쓰는 중이면 1분 안에 다시 확인합니다. MiniMax(M Plan / Token Plan)와 Z.AI(GLM Coding Plan)의 5시간 · 주간 한도는 입력한 API 키로 공식 엔드포인트에서 가져옵니다. **Qwen Code는 % 한도 API가 없어서 대신 로컬 토큰 · 비용을 추적합니다.** |
 | **소진 예측** | 최근 사용 속도로 한도가 바닥나는 시각을 계산합니다. 리셋 전에 바닥날 것 같으면 `▲ 지금 속도면 40분 후 소진` 으로 표시합니다. |
 | **페이스 눈금** | 막대 위 눈금이 한도 기간이 얼마나 지났는지 보여줍니다. 막대가 눈금보다 앞서 있으면 평소보다 빠른 것입니다. |
 | **API 환산 비용** | 모델별 공개 API 가격으로 오늘 · 7일 · 30일 비용을 추정합니다. 달러, 원(₩), 둘 다 중에서 고를 수 있고 환율은 자동으로 갱신합니다. |
@@ -134,6 +134,9 @@ AgentMeter는 서버가 없습니다. 모든 데이터는 **내 컴퓨터의 로
 | **Gemini CLI** | `~/.gemini/tmp/*/chats/session-*.jsonl` | Code Assist `retrieveUserQuota` 모델별 일일 할당량 | `~/.gemini/oauth_creds.json` |
 | **Antigravity CLI** (Windows) | 없음 (토큰 로그 없음) | 공식 `agy.exe` 상태 표시줄의 5시간 · 주간 한도를 백그라운드에서 조회 ([자세히](docs/antigravity-native.md)) | 공식 CLI가 직접 처리, AgentMeter는 읽지 않음 |
 | **Grok** | `~/.grok/**/*.jsonl` | 공식 API 없음 → 토큰 예산으로 추정 또는 [사용자 명령어](#사용자-명령어) | |
+| **MiniMax** (M Plan / Token Plan) | 없음 (다른 도구에서 사용) | `www.minimax.io/v1/token_plan/remains` (중국: `api.minimaxi.com`) — `general` 버킷의 5시간 · 주간 한도, `*_remaining_percent` 기준 | 에이전트 → MiniMax에 API 키 입력 (Global / China) |
+| **Z.AI** (GLM Coding Plan) | 없음 (다른 도구에서 사용) | `api.z.ai/api/monitor/usage/quota/limit` (중국: `open.bigmodel.cn`) — 5시간 · 주간 토큰 한도, 월간 웹검색 · 리더는 보조 한도 | 에이전트 → Z.AI에 API 키 입력 (Global / China) |
+| **Qwen Code** | `~/.qwen/projects/*/chats/*.jsonl` (+ `chats/archive/`, `QWEN_HOME`) | **% 한도 API 없음 — 로컬 토큰 · 비용 추적만.** chat recording(`general.chatRecording` 또는 `--chat-recording`)이 켜져 있어야 기록됩니다 | |
 
 - 로그는 **새로 추가된 줄만** 읽고, 재개한 세션이 복사한 기록과 중복 이벤트는 걸러냅니다.
 - 토큰 수는 캐시 읽기를 10%로 환산한 값입니다 (입력 + 출력 + 캐시 쓰기 + 캐시 읽기 × 0.1).
@@ -151,6 +154,7 @@ AgentMeter는 서버가 없습니다. 모든 데이터는 **내 컴퓨터의 로
 - **텔레메트리와 분석 도구가 없습니다.** 사용 기록은 내 컴퓨터 밖으로 나가지 않습니다.
 - 로그인 토큰은 위 공식 엔드포인트에만 씁니다. Claude Code 토큰이 만료되면 Claude Code와 같은 방식으로 갱신해 원래 파일(`~/.claude/.credentials.json`)에 다시 저장합니다. Claude 앱 안의 Claude Code 세션은 이 파일을 갱신하지 않기 때문입니다. 다른 CLI의 토큰은 읽기만 합니다. Antigravity는 공식 CLI가 로그인을 직접 처리하고, AgentMeter는 그 로그인 정보를 읽지 않습니다.
 - 네트워크 요청은 위 표의 공식 엔드포인트, Claude 로그인 갱신(`platform.claude.com`), 환율(`open.er-api.com`), 업데이트 확인(GitHub 릴리스)뿐입니다.
+- MiniMax · Z.AI API 키는 이 컴퓨터의 AgentMeter 설정 파일에만 저장되고, 위 표의 공식 한도 엔드포인트로만 보냅니다.
 
 ### 사용자 명령어
 
@@ -241,7 +245,7 @@ cd Agent-Meter && cargo run --release -p agentmeter
 ```
 crates/core/       수집 로직 (OS 의존 없음, 단위 테스트)
 crates/antigravity/  Windows용 Antigravity 한도 수집 (ConPTY, 서명 확인, 격리된 프로필)
-  usage/           Claude · Codex · Gemini · Antigravity · Grok 수집기, 예측, 사용량 장부
+  usage/           Claude · Codex · Gemini · Antigravity · Grok · MiniMax · Z.AI · Qwen 수집기, 예측, 사용량 장부
   pricing.rs       모델별 API 가격      settings.rs  설정 스키마 · 검증 · 마이그레이션
 src-tauri/         창 배치 · 멀티 모니터 · 작업표시줄 고정 · 단축키 · 트레이 게이지 · 알림 · 자동 업데이트
 ui/widget/         위젯 창
@@ -264,7 +268,7 @@ docs/screenshots/  README 이미지. demo-gif.js(데모 GIF) · strip-duo.js: �
 ## 고지
 
 - **비용은 추정치입니다.** 공개 API 가격표로 계산하며 실제 구독 요금이나 청구 금액과 다릅니다.
-- Claude, Codex(OpenAI), Gemini · Antigravity(Google), Grok(xAI)의 이름과 로고는 각 회사의 상표입니다. 이 프로젝트는 어느 회사와도 관련 없는 비공식 도구입니다.
+- Claude, Codex(OpenAI), Gemini · Antigravity(Google), Grok(xAI), MiniMax, Z.AI(Zhipu), Qwen(Alibaba Cloud)의 이름과 로고는 각 회사의 상표입니다. 이 프로젝트는 어느 회사와도 관련 없는 비공식 도구입니다.
   로고 SVG는 [@lobehub/icons](https://github.com/lobehub/lobe-icons)(MIT)에서 가져왔습니다.
 - 디자인: 베이스 `#2B2B2B`, 키 컬러 `#F05C1A`. 막대는 평소 밝은 회색이고, 첫 번째 임계값부터 주황, 두 번째부터 빨강으로 바뀌어 색만으로 상태를 구분하지 않도록 아이콘을 함께 씁니다.
 

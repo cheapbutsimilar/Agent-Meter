@@ -8,6 +8,9 @@ pub mod files;
 pub mod gemini;
 pub mod grok;
 pub mod ledger;
+pub mod minimax;
+pub mod qwen;
+pub mod zai;
 
 use crate::settings::Settings;
 use crate::time::DAY;
@@ -107,6 +110,9 @@ impl UsageService {
             Box::new(gemini::Gemini),
             Box::new(antigravity::Antigravity::default()),
             Box::new(grok::Grok),
+            Box::new(minimax::MiniMax),
+            Box::new(zai::Zai),
+            Box::new(qwen::Qwen),
         ];
         let states = providers
             .iter()

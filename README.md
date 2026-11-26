@@ -4,7 +4,7 @@
 
 # AgentMeter
 
-Live usage limits for **Claude Code · Codex · Gemini CLI · Antigravity · Grok**,<br>
+Live usage limits for **Claude Code · Codex · Gemini CLI · Antigravity · Grok · MiniMax · Z.AI · Qwen**,<br>
 right in your Windows taskbar, your Mac menu bar or on your desktop.
 
 [![Latest release](https://img.shields.io/github/v/release/cheapbutsimilar/Agent-Meter?style=flat-square&color=F05C1A&label=release)](https://github.com/cheapbutsimilar/Agent-Meter/releases/latest)
@@ -44,7 +44,7 @@ have cost at API prices.
 
 | | |
 | --- | --- |
-| **Official limit %** | Claude 5-hour, weekly and per-model limits (such as Claude Fable), Codex 5-hour and weekly (account-wide), Gemini CLI daily quotas, and Antigravity CLI 5-hour and weekly limits (Windows), straight from each service. Gemini CLI and Antigravity are separate agents, so you can watch both side by side. While an agent is working, limits are re-checked within a minute. |
+| **Official limit %** | Claude 5-hour, weekly and per-model limits (such as Claude Fable), Codex 5-hour and weekly (account-wide), Gemini CLI daily quotas, and Antigravity CLI 5-hour and weekly limits (Windows), straight from each service. Gemini CLI and Antigravity are separate agents, so you can watch both side by side. While an agent is working, limits are re-checked within a minute. MiniMax (M Plan / Token Plan) and Z.AI (GLM Coding Plan) 5-hour and weekly limits come from their official endpoints with the API key you enter. **Qwen Code has no % limit API, so it is tracked by local tokens and cost instead.** |
 | **Run-out forecast** | Works out when a limit will run out from your recent pace, and shows `▲ runs out in 40m at this pace` when that's before the reset. |
 | **Pace mark** | A mark on each bar shows how much of the limit window has passed. If the bar is ahead of the mark, you're going faster than usual. |
 | **API-equivalent cost** | Estimates today's, 7-day and 30-day cost at public API prices, e.g. `$44.48 today · 7d $272 · 30d $1,016`. Costs are shown in USD, with KRW (₩) or both also available. |
@@ -158,6 +158,9 @@ already saved**.
 | **Gemini CLI** | `~/.gemini/tmp/*/chats/session-*.jsonl` | Code Assist `retrieveUserQuota`: daily quota per model | `~/.gemini/oauth_creds.json` |
 | **Antigravity CLI** (Windows) | none (no token logs) | 5-hour and weekly limits from the official `agy.exe` status line, read in the background ([details](docs/antigravity-native.md)) | Handled by the official CLI; AgentMeter never reads it |
 | **Grok** | `~/.grok/**/*.jsonl` | No official API: estimated from a token budget, or a [custom command](#custom-command) | |
+| **MiniMax** (M Plan / Token Plan) | none (used through other tools) | `www.minimax.io/v1/token_plan/remains` (China: `api.minimaxi.com`): 5-hour and weekly limits of the `general` bucket, from the `*_remaining_percent` fields | API key in Agents → MiniMax (Global / China) |
+| **Z.AI** (GLM Coding Plan) | none (used through other tools) | `api.z.ai/api/monitor/usage/quota/limit` (China: `open.bigmodel.cn`): 5-hour and weekly token limits, monthly web search / reader as a minor window | API key in Agents → Z.AI (Global / China) |
+| **Qwen Code** | `~/.qwen/projects/*/chats/*.jsonl` (+ `chats/archive/`, `QWEN_HOME`) | **No % limit API: local token and cost tracking only.** Needs chat recording on (`general.chatRecording` or `--chat-recording`) | |
 
 - Only **new lines** are read. Sessions that were resumed (and copy earlier messages) and duplicate events are
   filtered out.
@@ -184,6 +187,7 @@ already saved**.
   inside the Claude desktop app don't refresh that file. Other CLIs' tokens are read-only.
 - The only network requests go to the endpoints in the table, the Claude login refresh (`platform.claude.com`),
   the exchange rate for KRW display (`open.er-api.com`), and update checks (GitHub Releases).
+- MiniMax and Z.AI API keys are kept in AgentMeter's settings file on this computer and are only sent to their official quota endpoints above.
 
 ### Custom command
 
@@ -284,7 +288,7 @@ repository folder.
 ```
 crates/core/       collectors and logic (no OS dependencies, unit-tested)
 crates/antigravity/  native Windows Antigravity quota collection (ConPTY, signature check, isolated profile)
-  usage/           Claude · Codex · Gemini · Antigravity · Grok collectors, forecasts, the usage ledger
+  usage/           Claude · Codex · Gemini · Antigravity · Grok · MiniMax · Z.AI · Qwen collectors, forecasts, the usage ledger
   pricing.rs       API prices per model      settings.rs  settings schema, validation, migrations
 src-tauri/         windows, multi-monitor, taskbar docking, shortcuts, tray gauge, notifications, updates
 ui/widget/         the widget window
@@ -307,7 +311,7 @@ See [docs/HANDOFF.md](docs/HANDOFF.md) for building another app on the same desi
 ## Notes
 
 - **Costs are estimates** at public API prices. They're not your subscription price or your bill.
-- Claude, Codex (OpenAI), Gemini and Antigravity (Google) and Grok (xAI) names and logos are trademarks of their owners. AgentMeter
+- Claude, Codex (OpenAI), Gemini and Antigravity (Google), Grok (xAI), MiniMax, Z.AI (Zhipu) and Qwen (Alibaba Cloud) names and logos are trademarks of their owners. AgentMeter
   is an independent project, not affiliated with any of them. Logo SVGs come from
   [@lobehub/icons](https://github.com/lobehub/lobe-icons) (MIT).
 - Design: base `#2B2B2B`, key color `#F05C1A`. Bars are light gray normally, orange from the first threshold and

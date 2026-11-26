@@ -136,7 +136,7 @@
         html += `</div>`;
       }
       // Antigravity writes no token logs, so it has no token or cost figures
-      if ((o.tokens || o.cost) && p.id !== 'antigravity') {
+      if ((o.tokens || o.cost) && U.hasTokens(p.id)) {
         html += `<div class="ex">`;
         if (o.tokens) html += `<span>${U.fmtNum(p.tokens.today)}</span>`;
         if (o.cost) html += `<span>${U.fmtMoney(p.tokens.costToday)}</span>`;
@@ -213,9 +213,9 @@
         }
         if (meta.length) html += `<div class="meta">${meta.join('')}</div>`;
       }
-      if (!ws.length) html += `<div class="meta"><span>${esc(tr('w.noLimits'))}</span></div>`;
+      if (!ws.length) html += `<div class="meta"><span>${esc(tr(p.id === 'qwen' ? 'w.localOnly' : 'w.noLimits'))}</span></div>`;
       const stats = [];
-      const counted = p.id !== 'antigravity';
+      const counted = U.hasTokens(p.id);
       if (o.tokens && counted) stats.push(tr('w.today', { n: U.fmtNum(p.tokens.today) }));
       if (o.cost && counted) stats.push(`<b>${U.fmtMoney(p.tokens.costToday)}</b> <span title="${esc(tr('w.costTitle'))}">${esc(tr('w.cost'))}</span>`);
       if (stats.length) html += `<div class="st">${stats.join('<i></i>')}</div>`;

@@ -36,6 +36,7 @@
     openDataDir: () => invoke('open_data_dir'),
     openUrl: (url) => invoke('open_url', { url }),
     memeSound: () => invoke('meme_sound'),
+    qwenPick: () => invoke('qwen_pick'),
     quit: () => invoke('quit_app'),
     on: (channel, cb) => {
       let unlisten = null;

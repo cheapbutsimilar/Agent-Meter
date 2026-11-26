@@ -19,6 +19,8 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - name: Core tests
         run: cargo test -p agentmeter-core
+      - name: UI strings in every language
+        run: node scripts/check-i18n.js
 
   # The whole app (Tauri shell included) has to build, lint and test on both desktops it ships for.
   desktop:

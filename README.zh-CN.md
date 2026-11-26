@@ -5,7 +5,7 @@
 # AgentMeter
 
 在 Windows 任务栏、Mac 菜单栏或桌面上直接查看<br>
-**Claude Code · Codex · Gemini CLI · Antigravity · Grok** 的使用额度和用量的桌面小组件
+**Claude Code · Codex · Gemini CLI · Antigravity · Grok · MiniMax · Z.AI · Qwen** 的使用额度和用量的桌面小组件
 
 [![Latest release](https://img.shields.io/github/v/release/cheapbutsimilar/Agent-Meter?style=flat-square&color=F05C1A&label=release)](https://github.com/cheapbutsimilar/Agent-Meter/releases/latest)
 ![Windows 10 · 11](https://img.shields.io/badge/Windows-10%20%C2%B7%2011-2B2B2B?style=flat-square)
@@ -43,7 +43,7 @@ AgentMeter 读取各服务官方提供的额度百分比和你本机上的使用
 
 | | |
 | --- | --- |
-| **官方额度 %** | 直接从各服务获取 Claude 的 5 小时、每周及按模型的额度（如 Claude Fable），Codex 的 5 小时和每周额度（整个账号），Gemini CLI 的每日配额，以及 Antigravity CLI 的 5 小时和每周额度（Windows）。Gemini CLI 与 Antigravity 是两个独立的代理，可以并排查看。代理工作期间，会在一分钟内重新检查额度。 |
+| **官方额度 %** | 直接从各服务获取 Claude 的 5 小时、每周及按模型的额度（如 Claude Fable），Codex 的 5 小时和每周额度（整个账号），Gemini CLI 的每日配额，以及 Antigravity CLI 的 5 小时和每周额度（Windows）。Gemini CLI 与 Antigravity 是两个独立的代理，可以并排查看。代理工作期间，会在一分钟内重新检查额度。 MiniMax（M Plan / Token Plan）和 Z.AI（GLM Coding Plan）的 5 小时和每周额度，使用你输入的 API 密钥从官方接口获取。**Qwen Code 没有 % 额度 API，因此改为追踪本地 token 和成本。** |
 | **耗尽预测** | 根据最近的使用速度推算额度耗尽的时间，若会在重置前用完，则显示 `▲ runs out in 40m at this pace`。 |
 | **进度刻度** | 每条进度条上的刻度表示额度周期已经过去了多少。如果进度条超过刻度，说明你比平时用得更快。 |
 | **API 等价成本** | 按公开 API 价格估算今天、7 天和 30 天的成本，例如 `$44.48 today · 7d $272 · 30d $1,016`。默认以美元显示，也可选择韩元（₩）或同时显示。 |
@@ -140,6 +140,9 @@ AgentMeter 没有服务器。所有数据都读取自**你本机上的日志文�
 | **Gemini CLI** | `~/.gemini/tmp/*/chats/session-*.jsonl` | Code Assist `retrieveUserQuota`：按模型的每日配额 | `~/.gemini/oauth_creds.json` |
 | **Antigravity CLI**（Windows） | 无（没有 token 日志） | 在后台读取官方 `agy.exe` 状态栏中的 5 小时和每周额度（[详情](docs/antigravity-native.md)） | 由官方 CLI 管理，AgentMeter 不会读取 |
 | **Grok** | `~/.grok/**/*.jsonl` | 没有官方 API：根据 token 预算估算，或使用[自定义命令](#自定义命令) | |
+| **MiniMax**（M Plan / Token Plan） | 无（通过其他工具使用） | `www.minimax.io/v1/token_plan/remains`（中国：`api.minimaxi.com`）：`general` 桶的 5 小时和每周额度（以 `*_remaining_percent` 为准） | 在代理 → MiniMax 中输入 API 密钥（Global / China） |
+| **Z.AI**（GLM Coding Plan） | 无（通过其他工具使用） | `api.z.ai/api/monitor/usage/quota/limit`（中国：`open.bigmodel.cn`）：5 小时和每周 token 额度，每月网页搜索 / 阅读器作为次要额度 | 在代理 → Z.AI 中输入 API 密钥（Global / China） |
+| **Qwen Code** | `~/.qwen/projects/*/chats/*.jsonl`（含 `chats/archive/`，支持 `QWEN_HOME`） | **没有 % 额度 API：仅追踪本地 token 和成本。** 需要开启聊天记录（`general.chatRecording` 或 `--chat-recording`） | |
 
 - 只读取**新增的行**。恢复的会话（会复制之前的消息）和重复事件都会被过滤。
 - Token 数按缓存读取计 10% 统计（输入 + 输出 + 缓存写入 + 缓存读取 × 0.1）。
@@ -153,6 +156,7 @@ AgentMeter 没有服务器。所有数据都读取自**你本机上的日志文�
 - **没有遥测、没有数据分析、没有账号。** 你的使用记录只保存在你的电脑上。
 - 登录令牌只会发送到上表中的官方接口。Antigravity 的登录由官方 CLI 自行管理，AgentMeter 不读取其凭据。Claude Code 的令牌过期时，AgentMeter 会用与 Claude Code 相同的方式续期，并写回同一个文件，因为 Claude 桌面应用中的 Claude Code 会话不会刷新该文件。其他 CLI 的令牌均为只读。
 - 网络请求仅限于：表中的接口、Claude 登录续期（`platform.claude.com`）、用于韩元显示的汇率（`open.er-api.com`），以及更新检查（GitHub Releases）。
+- MiniMax 和 Z.AI 的 API 密钥只保存在这台电脑的 AgentMeter 设置文件中，并且只发送到上表中的官方额度接口。
 
 ### 自定义命令
 
@@ -240,7 +244,7 @@ cd Agent-Meter && cargo run --release -p agentmeter
 ```
 crates/core/       采集器和逻辑（无操作系统依赖，带单元测试）
 crates/antigravity/  Windows 原生 Antigravity 配额采集（ConPTY、签名校验、隔离配置）
-  usage/           Claude · Codex · Gemini · Antigravity · Grok 采集器、预测、用量账本
+  usage/           Claude · Codex · Gemini · Antigravity · Grok · MiniMax · Z.AI · Qwen 采集器、预测、用量账本
   pricing.rs       各模型的 API 价格      settings.rs  设置结构、校验、迁移
 src-tauri/         窗口、多显示器、任务栏停靠、快捷键、托盘仪表、通知、更新
 ui/widget/         小组件窗口
@@ -263,7 +267,7 @@ docs/screenshots/  README 图片；demo-gif.js（演示 GIF）和 strip-duo.js �
 ## 说明
 
 - **成本为按公开 API 价格的估算值**，不是你的订阅价格或账单。
-- Claude、Codex（OpenAI）、Gemini 和 Antigravity（Google）以及 Grok（xAI）的名称和标志均为其各自所有者的商标。AgentMeter 是独立项目，与上述任何一方均无关联。标志 SVG 来自 [@lobehub/icons](https://github.com/lobehub/lobe-icons)（MIT）。
+- Claude、Codex（OpenAI）、Gemini 和 Antigravity（Google）Grok（xAI）以及 MiniMax、Z.AI（智谱）、Qwen（阿里云）的名称和标志均为其各自所有者的商标。AgentMeter 是独立项目，与上述任何一方均无关联。标志 SVG 来自 [@lobehub/icons](https://github.com/lobehub/lobe-icons)（MIT）。
 - 设计：底色 `#2B2B2B`，主色 `#F05C1A`。进度条平时为浅灰色，达到第一个阈值后变为橙色，达到第二个阈值后变为红色。颜色旁都配有图标，因此状态判断不会只依赖颜色。
 
 <div align="center"><sub><a href="LICENSE">MIT License</a></sub></div>

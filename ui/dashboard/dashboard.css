@@ -470,6 +470,11 @@ h2:first-child {
   border-color: var(--accent);
   outline: none;
 }
+.inp.key {
+  width: 220px;
+  flex: none;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+}
 .inp.num {
   width: 110px;
   text-align: right;

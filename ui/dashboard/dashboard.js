@@ -24,7 +24,7 @@
   const ui = {
     metric: 'tokens',
     range: 30,
-    agents: new Set(['claude', 'codex', 'gemini', 'antigravity', 'grok']),
+    agents: new Set(['claude', 'codex', 'gemini', 'antigravity', 'grok', 'minimax', 'zai', 'qwen']),
     displayTab: S.settings.mode === 'floating' ? 'floating' : 'taskbar',
     recording: null,
     hotkeyErrors: S.hotkeyErrors || [],
@@ -52,6 +52,17 @@
   // ---------------------------------------------------------------- shown agents & connect
   const isShown = (p) => cfgOf(p.id).visible !== false;
   const FABLE_IDS = ['7d_fable', '5h_fable'];
+  /** Agents read with an API key from Settings (no CLI login to connect). */
+  const KEYED = ['minimax', 'zai'];
+  /** Why an agent's card has no limit bars. */
+  function noLimitsNote(p) {
+    if (p.id === 'grok') return tr('ov.grokNote');
+    if (p.id === 'antigravity' && !p.detected) return tr('ov.agyNote');
+    if (p.id === 'codex') return tr('ov.codexNote');
+    if (KEYED.includes(p.id)) return (cfgOf(p.id).apiKey || '').trim() ? tr('ov.waiting') : tr('ov.keyNote');
+    if (p.id === 'qwen') return p.logFiles ? tr('ov.qwenNote') : tr('qwen.recording');
+    return p.detected ? tr('ov.waiting') : tr('ov.noLogs');
+  }
   const CONNECT_NAMES = { claude: 'Claude Code', codex: 'Codex', gemini: 'Gemini CLI', antigravity: 'Antigravity CLI' };
   /** "원클릭 연결" when the agent's CLI isn't logged in (or the API says so). */
   function connectBtn(p, { always = false } = {}) {
@@ -83,9 +94,10 @@
   function statusOf(p, now) {
     if (!p.enabled) return `<span class="status"><i></i>${esc(tr('status.off'))}</span>`;
     if (U.isActive(p, now)) return `<span class="status live"><i></i>${esc(tr('status.working'))}</span>`;
+    if (KEYED.includes(p.id) && !(cfgOf(p.id).apiKey || '').trim()) return `<span class="status"><i></i>${esc(tr('status.noKey'))}</span>`;
     if (!p.detected) return `<span class="status"><i></i>${esc(tr('status.notFound'))}</span>`;
-    // Antigravity has no activity log, only its limit readings
-    if (p.id === 'antigravity') return `<span class="status"><i></i>${esc(p.limitsAt ? tr('ag.limitsAt', { t: U.relTime(p.limitsAt, now) }) : tr('ov.waiting'))}</span>`;
+    // Antigravity, MiniMax and Z.AI have no activity log, only their limit readings
+    if (!U.hasTokens(p.id)) return `<span class="status"><i></i>${esc(p.limitsAt ? tr('ag.limitsAt', { t: U.relTime(p.limitsAt, now) }) : tr('ov.waiting'))}</span>`;
     return `<span class="status"><i></i>${esc(tr('status.last', { t: U.relTime(p.tokens.lastEventAt, now) }))}</span>`;
   }
 
@@ -201,16 +213,14 @@
       const wins = p.windows.filter((w) => !offIds.includes(w.id));
       if (wins.length) html += wins.map((w) => limitRow(w, now)).join('');
       else
-        html += `<div class="note muted">${
-          esc(p.id === 'grok' ? tr('ov.grokNote') : p.id === 'antigravity' && !p.detected ? tr('ov.agyNote') : p.id === 'codex' ? tr('ov.codexNote') : p.detected ? tr('ov.waiting') : tr('ov.noLogs'))
-        }</div>`;
-      // Antigravity writes no token logs: no token or cost figures to show
-      if (p.id !== 'antigravity') html +=
+        html += `<div class="note muted">${esc(noLimitsNote(p))}</div>`;
+      // Antigravity, MiniMax and Z.AI write no token logs: no token or cost figures to show
+      if (U.hasTokens(p.id)) html +=
         `<div class="astats"><div><div class="k">${esc(tr('ov.today'))}</div><div class="v">${U.fmtNum(t.today)}</div></div>` +
         `<div><div class="k">${esc(tr('ov.last5h'))}</div><div class="v">${U.fmtNum(t.last5h)}</div></div>` +
         `<div><div class="k">${esc(tr('ov.last7d'))}</div><div class="v">${U.fmtNum(t.week)}</div></div>` +
         `<div><div class="k">${esc(tr('ov.costToday'))}</div><div class="v">${U.fmtMoneyHtml(t.costToday)}</div></div></div>`;
-      if (p.id !== 'antigravity') html += sparkline(p);
+      if (U.hasTokens(p.id)) html += sparkline(p);
       const note = [p.apiError, p.commandError, p.scanError].filter(Boolean).map(I18N.apiError).join(' · ');
       const btn = connectBtn(p);
       if (note || btn) html += `<div class="note-row">${note ? `<div class="note">${esc(note)}</div>` : '<span></span>'}${btn}</div>`;
@@ -500,14 +510,17 @@
     html += `<div class="grid2">`;
     for (const p of providers()) {
       const c = cfgOf(p.id);
-      const hasApi = ['claude', 'codex', 'gemini', 'antigravity'].includes(p.id);
+      const hasApi = ['claude', 'codex', 'gemini', 'antigravity', ...KEYED].includes(p.id);
+      const keyed = KEYED.includes(p.id);
       const hidden = c.hiddenWindows || [];
       html += `<div class="card acfg"><div class="ah">${R.logo(p.id, 22)}<span class="nm">${esc(U.AGENTS[p.id].product)}</span><span class="sp"></span>${statusOf(p, Date.now())}</div>`;
       html += `<div class="src">${tr(`ag.${p.id}`)}</div>`;
       html += `<div class="rows">`;
       html += rowT('ag.collect', sw(`data-prov="${p.id}" data-key="enabled"`, c.enabled !== false));
       html += rowT('ag.show', sw(`data-prov="${p.id}" data-key="visible"`, c.visible !== false));
-      html += row(esc(tr('ag.login')), esc(connectText(p)), connectBtn(p, { always: true }));
+      if (keyed) html += keyRows(p, c);
+      else if (p.id === 'qwen') html += qwenRow(p, c);
+      else html += row(esc(tr('ag.login')), esc(connectText(p)), connectBtn(p, { always: true }));
       if (hasApi) html += rowT('ag.api', sw(`data-prov="${p.id}" data-key="useApi"`, c.useApi !== false));
       if (p.id === 'antigravity') html += agyRow(p, c);
       if (p.id === 'claude') {
@@ -523,10 +536,11 @@
           .join('');
         html += `</div>`;
       }
-      // Antigravity has no logs to read and its limits come only from the CLI
-      if (p.id !== 'antigravity') html += agentForm(p, c);
+      // Antigravity, MiniMax and Z.AI have no logs to read
+      if (U.hasTokens(p.id)) html += agentForm(p, c);
+      if (p.id === 'qwen') html += `<div class="note muted">${esc(p.logFiles ? tr('ag.qwenNote') : tr('qwen.recording'))}</div>`;
       const facts = [
-        p.id === 'antigravity' ? null : tr('ag.logFiles', { n: p.logFiles || 0 }),
+        U.hasTokens(p.id) ? tr('ag.logFiles', { n: p.logFiles || 0 }) : null,
         p.limitsAt && p.id !== 'antigravity' ? tr('ag.limitsAt', { t: U.relTime(p.limitsAt) }) : null,
         p.tokens.unpricedWeek ? tr('ag.unpriced', { n: U.fmtNum(p.tokens.unpricedWeek) }) : null,
       ].filter(Boolean);
@@ -551,6 +565,30 @@
       (manual ? `<button class="btn sm" data-act="agy-auto">${esc(tr('ag.agy.auto'))}</button>` : '') +
       `</div>`;
     return row(esc(tr('ag.agyPath')), esc(text), btns);
+  }
+
+  /** MiniMax / Z.AI: the API key and the platform (region) it belongs to. */
+  function keyRows(p, c) {
+    const region = c.region === 'china' ? 'china' : 'global';
+    const opts = ['global', 'china'].map((r) => `<option value="${r}" ${r === region ? 'selected' : ''}>${esc(tr(`region.${r}`))}</option>`).join('');
+    return (
+      row(
+        esc(tr('ag.apiKey')),
+        esc(tr(`ag.apiKey.${p.id}`)),
+        `<input class="inp key" type="password" autocomplete="off" spellcheck="false" data-prov="${p.id}" data-key="apiKey" value="${esc(c.apiKey || '')}" placeholder="${esc(tr('ag.apiKey.ph'))}"/>`,
+      ) + row(esc(tr('ag.region')), esc(tr('ag.region.sub')), `<select class="inp sel" data-prov="${p.id}" data-key="region">${opts}</select>`)
+    );
+  }
+
+  /** Qwen: where its chat recordings are (found on its own, or picked). */
+  function qwenRow(p, c) {
+    const manual = (c.logPath || '').trim();
+    const text = manual ? tr('ag.qwenPath.manual', { path: manual }) : tr('ag.qwenPath.auto');
+    const btns =
+      `<div style="display:flex;flex-direction:column;gap:6px;flex:none"><button class="btn sm" data-act="qwen-pick">${esc(tr('ag.agy.browse'))}</button>` +
+      (manual ? `<button class="btn sm" data-act="qwen-auto">${esc(tr('ag.agy.auto'))}</button>` : '') +
+      `</div>`;
+    return row(esc(tr('ag.qwenPath')), esc(text), btns);
   }
 
   /** Extra log folders, token budgets and a custom command (agents with logs). */
@@ -889,6 +927,18 @@
           toast(tr('toast.agyFail', { e: I18N.apiError(String(err)) }));
         }
         break;
+      case 'qwen-pick': {
+        const path = await api.qwenPick();
+        if (path) {
+          await set({ providers: { qwen: { logPath: path } } });
+          api.refresh();
+        }
+        break;
+      }
+      case 'qwen-auto':
+        await set({ providers: { qwen: { logPath: '' } } });
+        api.refresh();
+        break;
       case 'agy-auto':
         await set({ providers: { antigravity: { antigravityPath: '' } } });
         loadSetup(true);
@@ -941,7 +991,11 @@
       for (const id of FABLE_IDS) val ? hidden.delete(id) : hidden.add(id);
       set({ providers: { claude: { hiddenWindows: [...hidden] } } });
     }
-    else if (el.dataset.prov) set({ providers: { [el.dataset.prov]: { [el.dataset.key]: val } } });
+    else if (el.dataset.prov) {
+      const done = set({ providers: { [el.dataset.prov]: { [el.dataset.key]: typeof val === 'string' ? val.trim() : val } } });
+      // a new key or region is worth asking about right away
+      if (['apiKey', 'region'].includes(el.dataset.key)) Promise.resolve(done).then(() => api.refresh());
+    }
     else if (el.dataset.th != null) {
       const th = (S.settings.alertThresholds || [80, 95]).slice();
       th[Number(el.dataset.th)] = Number(el.value) || 0;

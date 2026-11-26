@@ -122,6 +122,37 @@
         },
         history: history(110_000, 0.5),
       },
+      {
+        id: 'minimax', name: 'MiniMax', enabled: true, plan: 'Plus', source: 'api', detected: true, logFiles: 0, limitsAt: now - 3 * MIN,
+        windows: [
+          win('5h', '5H', 38, 2 * HOUR + 20 * MIN, 300, { ratePerHour: 7.2 }),
+          win('7d', 'WK', 21, 3 * DAY + 9 * HOUR, 10080, { ratePerHour: 0.3 }),
+        ],
+        tokens: { today: 0, last5h: 0, week: 0, costToday: 0, cost5h: 0, costWeek: 0, cost30d: 0, unpricedWeek: 0, lastEventAt: null, models: [], projects: [], heatmap: heatmap(0) },
+        history: history(0, 0),
+      },
+      {
+        id: 'zai', name: 'Z.AI', enabled: true, plan: 'pro', source: 'api', detected: true, logFiles: 0, limitsAt: now - 4 * MIN,
+        windows: [
+          win('5h', '5H', 57, 1 * HOUR + 35 * MIN, 300, { ratePerHour: 12.1 }),
+          win('7d', 'WK', 33, 4 * DAY + 2 * HOUR, 10080, { ratePerHour: 0.6 }),
+          win('mcp', 'MCP', 12, 20 * DAY, 43200, { minor: true }),
+        ],
+        tokens: { today: 0, last5h: 0, week: 0, costToday: 0, cost5h: 0, costWeek: 0, cost30d: 0, unpricedWeek: 0, lastEventAt: null, models: [], projects: [], heatmap: heatmap(0) },
+        history: history(0, 0),
+      },
+      {
+        id: 'qwen', name: 'Qwen', enabled: true, plan: null, source: 'none', detected: true, logFiles: 5, limitsAt: null,
+        windows: [],
+        tokens: {
+          today: 910_000, last5h: 540_000, week: 4_300_000, costToday: 1.42, cost5h: 0.88, costWeek: 6.9, cost30d: 21.7, unpricedWeek: 0,
+          lastEventAt: now - 6 * MIN,
+          models: [{ name: 'qwen3-coder-plus', w: 3_600_000, cost: 6.1 }, { name: 'qwen3-coder-flash', w: 700_000, cost: 0.8 }],
+          projects: [{ name: 'shop-api', w: 4_300_000, cost: 6.9 }],
+          heatmap: heatmap(90_000),
+        },
+        history: history(600_000, 1.0),
+      },
     ],
   };
 
@@ -143,6 +174,10 @@
       gemini: provider({}),
       antigravity: provider({ antigravityPath: '' }),
       grok: provider({ useApi: false, budget5h: 1_000_000 }),
+      // newer agents stay out of the README screenshots unless asked for (?agents=…)
+      minimax: provider({ visible: false, apiKey: 'mm-demo-key', region: 'global' }),
+      zai: provider({ visible: false, apiKey: 'zai-demo-key', region: 'global' }),
+      qwen: provider({ visible: false, logPath: '' }),
     },
   };
   const qs = new URLSearchParams(location.search);
@@ -244,6 +279,7 @@
     openDataDir: () => {},
     openUrl: () => {},
     memeSound: () => {},
+    qwenPick: async () => null,
     quit: () => {},
     on: (ch, cb) => {
       (listeners[ch] = listeners[ch] || []).push(cb);

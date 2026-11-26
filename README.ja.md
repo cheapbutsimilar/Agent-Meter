@@ -4,7 +4,7 @@
 
 # AgentMeter
 
-**Claude Code · Codex · Gemini CLI · Antigravity · Grok** の使用上限と使用量を、<br>
+**Claude Code · Codex · Gemini CLI · Antigravity · Grok · MiniMax · Z.AI · Qwen** の使用上限と使用量を、<br>
 Windows のタスクバー、Mac のメニューバー、デスクトップでそのまま確認できるデスクトップウィジェット
 
 [![Latest release](https://img.shields.io/github/v/release/cheapbutsimilar/Agent-Meter?style=flat-square&color=F05C1A&label=release)](https://github.com/cheapbutsimilar/Agent-Meter/releases/latest)
@@ -43,7 +43,7 @@ AgentMeter は各サービスの公式な上限パーセンテージと、お使
 
 | | |
 | --- | --- |
-| **公式の上限 %** | Claude の 5 時間・週間・モデル別上限（Claude Fable など）、Codex の 5 時間・週間（アカウント全体）、Gemini CLI の日次クォータ、Antigravity CLI の 5 時間・週間上限（Windows）を各サービスから直接取得します。Gemini CLI と Antigravity は別のエージェントなので、両方を並べて確認できます。エージェントの作業中は 1 分以内に上限を再確認します。 |
+| **公式の上限 %** | Claude の 5 時間・週間・モデル別上限（Claude Fable など）、Codex の 5 時間・週間（アカウント全体）、Gemini CLI の日次クォータ、Antigravity CLI の 5 時間・週間上限（Windows）を各サービスから直接取得します。Gemini CLI と Antigravity は別のエージェントなので、両方を並べて確認できます。エージェントの作業中は 1 分以内に上限を再確認します。 MiniMax（M Plan / Token Plan）と Z.AI（GLM Coding Plan）の 5 時間・週間上限は、入力した API キーで公式エンドポイントから取得します。**Qwen Code には % 上限 API がないため、代わりにローカルのトークン・コストを追跡します。** |
 | **使い切り予測** | 最近のペースから上限に達する時刻を計算し、リセットより前に尽きそうなときは `▲ runs out in 40m at this pace` と表示します。 |
 | **ペースマーク** | 各バーのマークが、上限期間のどれだけが経過したかを示します。バーがマークより先にあれば、普段より速いペースです。 |
 | **API 換算コスト** | 公開 API 価格で今日・7 日・30 日のコストを見積もります（例：`$44.48 today · 7d $272 · 30d $1,016`）。表示は USD で、KRW（₩）または両方も選べます。 |
@@ -140,6 +140,9 @@ AgentMeter のサーバーはありません。すべて**お使いのマシン�
 | **Gemini CLI** | `~/.gemini/tmp/*/chats/session-*.jsonl` | Code Assist `retrieveUserQuota`：モデルごとの日次クォータ | `~/.gemini/oauth_creds.json` |
 | **Antigravity CLI**（Windows） | なし（トークンログなし） | 公式 `agy.exe` のステータス行から 5 時間・週間上限をバックグラウンドで読み取り（[詳細](docs/antigravity-native.md)） | 公式 CLI が管理し、AgentMeter は読み取りません |
 | **Grok** | `~/.grok/**/*.jsonl` | 公式 API なし：トークン予算からの推定、または[カスタムコマンド](#カスタムコマンド) | |
+| **MiniMax**（M Plan / Token Plan） | なし（他のツール経由で使用） | `www.minimax.io/v1/token_plan/remains`（中国：`api.minimaxi.com`）：`general` バケットの 5 時間・週間上限（`*_remaining_percent` 基準） | エージェント → MiniMax に API キーを入力（Global / China） |
+| **Z.AI**（GLM Coding Plan） | なし（他のツール経由で使用） | `api.z.ai/api/monitor/usage/quota/limit`（中国：`open.bigmodel.cn`）：5 時間・週間のトークン上限、月間の Web 検索・リーダーは補助ウィンドウ | エージェント → Z.AI に API キーを入力（Global / China） |
+| **Qwen Code** | `~/.qwen/projects/*/chats/*.jsonl`（`chats/archive/`、`QWEN_HOME` 対応） | **% 上限 API なし：ローカルのトークン・コスト追跡のみ。** チャット記録（`general.chatRecording` または `--chat-recording`）を有効にする必要があります | |
 
 - 読み取るのは**新しい行**だけです。再開されたセッション（以前のメッセージをコピーするもの）や重複イベントは除外されます。
 - トークン数はキャッシュ読み取りを 10% として計算します（入力 + 出力 + キャッシュ書き込み + キャッシュ読み取り × 0.1）。
@@ -153,6 +156,7 @@ AgentMeter のサーバーはありません。すべて**お使いのマシン�
 - **テレメトリ、分析、アカウントは一切ありません。** 使用履歴はお使いのコンピューターにのみ残ります。
 - ログイントークンは上記の公式エンドポイントにのみ送信されます。Antigravity のログインは公式 CLI が自身で管理し、AgentMeter はその認証情報を読みません。Claude Code のトークンが期限切れになると、AgentMeter は Claude Code と同じ方法で更新し、同じファイルに保存し直します。これは、Claude デスクトップアプリ内の Claude Code セッションがそのファイルを更新しないためです。他の CLI のトークンは読み取り専用です。
 - ネットワーク通信は、表のエンドポイント、Claude のログイン更新（`platform.claude.com`）、KRW 表示用の為替レート（`open.er-api.com`）、アップデート確認（GitHub Releases）のみです。
+- MiniMax・Z.AI の API キーはこのコンピューターの AgentMeter 設定ファイルにのみ保存され、上記の公式クォータエンドポイントにのみ送信されます。
 
 ### カスタムコマンド
 
@@ -240,7 +244,7 @@ cd Agent-Meter && cargo run --release -p agentmeter
 ```
 crates/core/       コレクターとロジック（OS 依存なし、ユニットテスト付き）
 crates/antigravity/  Windows ネイティブの Antigravity クォータ取得（ConPTY、署名確認、隔離プロファイル）
-  usage/           Claude · Codex · Gemini · Antigravity · Grok のコレクター、予測、使用量台帳
+  usage/           Claude · Codex · Gemini · Antigravity · Grok · MiniMax · Z.AI · Qwen のコレクター、予測、使用量台帳
   pricing.rs       モデルごとの API 価格      settings.rs  設定スキーマ、検証、移行
 src-tauri/         ウィンドウ、マルチモニター、タスクバードッキング、ショートカット、トレイゲージ、通知、アップデート
 ui/widget/         ウィジェットウィンドウ
@@ -263,7 +267,7 @@ docs/screenshots/  README 画像。demo-gif.js（デモ GIF）と strip-duo.js �
 ## 注意事項
 
 - **コストは公開 API 価格での見積もり**です。サブスクリプション料金や請求額ではありません。
-- Claude、Codex（OpenAI）、Gemini と Antigravity（Google）、Grok（xAI）の名称とロゴは各所有者の商標です。AgentMeter は独立したプロジェクトであり、いずれとも提携していません。ロゴの SVG は [@lobehub/icons](https://github.com/lobehub/lobe-icons)（MIT）のものです。
+- Claude、Codex（OpenAI）、Gemini と Antigravity（Google）、Grok（xAI）、MiniMax、Z.AI（Zhipu）、Qwen（Alibaba Cloud）の名称とロゴは各所有者の商標です。AgentMeter は独立したプロジェクトであり、いずれとも提携していません。ロゴの SVG は [@lobehub/icons](https://github.com/lobehub/lobe-icons)（MIT）のものです。
 - デザイン：ベース `#2B2B2B`、キーカラー `#F05C1A`。バーは通常は明るいグレー、1 つ目のしきい値からオレンジ、2 つ目から赤になります。色にはアイコンも添えるため、状態を色だけで判断する必要はありません。
 
 <div align="center"><sub><a href="LICENSE">MIT License</a></sub></div>

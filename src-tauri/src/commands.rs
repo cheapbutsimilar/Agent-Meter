@@ -300,6 +300,20 @@ pub async fn antigravity_pick(app: AppHandle) -> Result<Option<String>, String> 
     Ok(Some(path.to_string_lossy().into_owned()))
 }
 
+/// Qwen Code's home folder (holding `projects/`), picked by hand.
+#[tauri::command]
+pub async fn qwen_pick(app: AppHandle) -> Result<Option<String>, String> {
+    use tauri_plugin_dialog::DialogExt;
+    let picked = app
+        .dialog()
+        .file()
+        .set_title("Qwen Code (.qwen)")
+        .blocking_pick_folder();
+    Ok(picked
+        .and_then(|p| p.into_path().ok())
+        .map(|p| p.to_string_lossy().into_owned()))
+}
+
 #[tauri::command]
 pub fn setup_connect(app: AppHandle, agent: String) -> Result<(), String> {
     crate::setup::connect(&app, &agent)
@@ -331,7 +345,8 @@ pub fn handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Send + Sync + 'static 
         changelog,
         setup_status,
         setup_connect,
-        antigravity_pick
+        antigravity_pick,
+        qwen_pick
     ]
 }
 

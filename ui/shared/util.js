@@ -14,9 +14,15 @@
     gemini: { id: 'gemini', name: 'Gemini', product: 'Gemini CLI', color: 'var(--c-gemini)' },
     antigravity: { id: 'antigravity', name: 'Antigravity', product: 'Antigravity CLI', color: 'var(--c-antigravity)' },
     grok: { id: 'grok', name: 'Grok', product: 'Grok', color: 'var(--c-grok)' },
+    minimax: { id: 'minimax', name: 'MiniMax', product: 'MiniMax (M Plan)', color: 'var(--c-minimax)', tokens: false },
+    zai: { id: 'zai', name: 'Z.AI', product: 'Z.AI GLM Coding Plan', color: 'var(--c-zai)', tokens: false },
+    qwen: { id: 'qwen', name: 'Qwen', product: 'Qwen Code', color: 'var(--c-qwen)' },
   };
+  AGENTS.antigravity.tokens = false;
   /** Stacking order for charts (adjacent colors validated for color-vision deficiency). */
-  const STACK_ORDER = ['gemini', 'claude', 'grok', 'codex', 'antigravity'];
+  const STACK_ORDER = ['gemini', 'claude', 'grok', 'codex', 'antigravity', 'qwen', 'minimax', 'zai'];
+  /** Agents with local token logs (Antigravity, MiniMax and Z.AI only report limits). */
+  const hasTokens = (id) => !AGENTS[id] || AGENTS[id].tokens !== false;
 
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -237,6 +243,7 @@
     DAY,
     AGENTS,
     STACK_ORDER,
+    hasTokens,
     esc,
     fmtInt,
     fmtNum,
