@@ -5,10 +5,11 @@
 # AgentMeter
 
 **Claude Code · Codex · Gemini CLI · Antigravity · Grok** 의 한도와 사용량을<br>
-작업표시줄과 바탕화면에서 바로 보는 데스크톱 위젯
+Windows 작업표시줄 · Mac 메뉴 막대 · 바탕화면에서 바로 보는 데스크톱 위젯
 
 [![최신 릴리스](https://img.shields.io/github/v/release/cheapbutsimilar/Agent-Meter?style=flat-square&color=F05C1A&label=release)](https://github.com/cheapbutsimilar/Agent-Meter/releases/latest)
 ![Windows 10 · 11](https://img.shields.io/badge/Windows-10%20%C2%B7%2011-2B2B2B?style=flat-square)
+![macOS 11+](https://img.shields.io/badge/macOS-11%2B%20%C2%B7%20Apple%20Silicon%20%C2%B7%20Intel-2B2B2B?style=flat-square&logo=apple&logoColor=white)
 ![Rust · Tauri 2](https://img.shields.io/badge/Rust-Tauri%202-2B2B2B?style=flat-square&logo=tauri&logoColor=white)
 ![설치 파일 2.3MB](https://img.shields.io/badge/%EC%84%A4%EC%B9%98%20%ED%8C%8C%EC%9D%BC-2.3MB-2B2B2B?style=flat-square)
 ![MIT](https://img.shields.io/badge/license-MIT-2B2B2B?style=flat-square)
@@ -55,7 +56,7 @@ AgentMeter는 각 서비스의 공식 한도 %와 내 컴퓨터의 로그를 모
 | --- | --- |
 | 가로형 ↔ 카드형 | `PageUp` 또는 우클릭 메뉴 |
 | 위젯 숨기기 / 보이기 | `Shift+PageUp` |
-| 대시보드 열기 | 위젯 더블클릭, 트레이 아이콘 클릭 |
+| 대시보드 열기 | 위젯 더블클릭, 트레이 아이콘 클릭 (Mac: 메뉴 막대 아이콘 → 대시보드 열기) |
 | 위젯 설정 | 위젯의 ⚙ 버튼 |
 | 위치 고정 · 항상 위 · 남은 양 표시 | 우클릭 메뉴 |
 
@@ -71,7 +72,7 @@ AgentMeter는 각 서비스의 공식 한도 %와 내 컴퓨터의 로그를 모
 
 <img src="docs/screenshots/themes.png" alt="AgentMeter · 노르딕 · 미드나잇 · 로즈 테마" width="100%">
 
-- **모드**: 시스템 · 라이트 · 다크 (시스템이면 Windows 설정을 따라감)
+- **모드**: 시스템 · 라이트 · 다크 (시스템이면 Windows · macOS 설정을 따라감)
 - **프리셋**: AgentMeter, 미드나잇, 노르딕, 포레스트, 그래파이트, 로즈 (각각 라이트 · 다크)
 - **색**: 강조색 · 배경색 · 글자색을 직접 지정 (글자 대비가 4.5:1보다 낮으면 경고)
 - **크기**: 글꼴, 대시보드 배율 90–125%, 위젯 불투명도 · 크기 · 막대 길이 · 카드 폭 · 모서리
@@ -98,16 +99,29 @@ AgentMeter는 각 서비스의 공식 한도 %와 내 컴퓨터의 로그를 모
 
 ## 설치
 
+### Windows
+
 1. [**최신 릴리스**](https://github.com/cheapbutsimilar/Agent-Meter/releases/latest)에서 `AgentMeter_<버전>_x64-setup.exe` 를 내려받아 실행합니다.
 2. "Windows의 PC 보호" 창이 뜨면 **추가 정보 → 실행**을 누릅니다. 코드 서명 인증서가 없는 개인 프로젝트라서 뜨는 경고입니다. 업데이트 파일은 별도의 서명으로 검증합니다.
 3. 관리자 권한 없이 내 계정에만 설치됩니다. 처음 실행하면 대시보드가 열리고, 화면 오른쪽 아래에 위젯이, 트레이에 게이지 아이콘이 생깁니다.
 4. Claude Code · Codex · Gemini CLI · Antigravity CLI 에 한 번이라도 로그인돼 있으면 바로 한도가 보입니다. 아니라면 대시보드 개요나 에이전트 페이지의 **원클릭 연결**을 누르세요. CLI가 없으면 설치하고 로그인 화면까지 열어 줍니다.
 
+### macOS
+
+1. [**최신 릴리스**](https://github.com/cheapbutsimilar/Agent-Meter/releases/latest)에서 `AgentMeter_<버전>_universal.dmg` 를 내려받습니다. 파일 하나로 Apple Silicon과 Intel Mac에서 모두 네이티브로 돌아갑니다 (macOS 11 Big Sur 이상).
+2. `.dmg` 를 열고 **AgentMeter** 를 **응용 프로그램(Applications)** 폴더로 끌어다 놓습니다.
+3. Apple 공증(notarization)을 받지 않은 개인 오픈소스 프로젝트라서, 처음 열 때 **Gatekeeper** 가 *"AgentMeter"을(를) 열 수 없습니다* / *Apple에서 확인할 수 없습니다* 라며 막습니다. 아래 중 한 가지로 한 번만 허용하면 됩니다.
+   - **시스템 설정 → 개인정보 보호 및 보안** 을 아래로 내려 AgentMeter 옆의 **그래도 열기** 를 누르고 확인합니다. (macOS 14 이하에서는 응용 프로그램 폴더에서 앱을 Control-클릭 → **열기** → **열기** 로도 됩니다.)
+   - 또는 터미널에서: `xattr -dr com.apple.quarantine /Applications/AgentMeter.app`
+4. AgentMeter는 **메뉴 막대** 에 상주합니다 (Dock 아이콘 없음). 게이지 아이콘을 누르면 메뉴가 열리고, 위젯은 가로형 · 카드형 모두 바탕화면에 떠 있습니다. `PageUp` 으로 전환하고 (MacBook 키보드는 `fn` + `↑`), **항상 위에** 는 위젯 우클릭 메뉴에 있습니다. Mac에는 작업표시줄이 없어서 가로형도 항상 떠 있는 형태입니다.
+
+Mac에서는 Claude Code 로그인 정보를 **키체인**(`Claude Code-credentials`)에서 읽기 때문에, 처음에 접근을 허용할지 한 번 물어볼 수 있습니다. **항상 허용** 을 고르세요. Antigravity CLI 수집은 아직 Windows에서만 됩니다.
+
 새 버전이 나오면 알림과 함께 **이번 업데이트 내용과 "지금 업데이트 / 나중에"** 를 묻는 창이 뜹니다. 시작 20초 뒤와 3시간마다 확인합니다.
 대시보드 → 일반 → 업데이트에서 지금 확인하거나, **패치노트**를 보거나, 묻지 않고 바로 설치하도록 바꿀 수 있습니다. 전체 변경 내역은 [CHANGELOG.md](CHANGELOG.md)에 있습니다.
 
-> Windows 10 · 11 (x64) 기준입니다. 필요한 WebView2 런타임은 Windows에 기본으로 들어 있습니다.
-> macOS · Linux 는 [소스에서 빌드](#소스에서-빌드)할 수 있지만 작업표시줄 붙이기는 Windows에 맞춰 만들었습니다.
+> Windows 10 · 11 (x64)과 macOS 11 이상 (Apple Silicon · Intel)용으로 배포합니다. Windows에 필요한 WebView2 런타임은 Windows에 기본으로 들어 있습니다.
+> Linux 는 [소스에서 빌드](#소스에서-빌드)할 수 있고, 작업표시줄 붙이기는 Windows 전용입니다.
 
 ## 사용량을 읽는 방법
 
@@ -245,7 +259,7 @@ docs/screenshots/  README 이미지. demo-gif.js(데모 GIF) · strip-duo.js: �
 
 ## 로드맵
 
-- macOS 메뉴 막대 지원 (예정)
+- macOS에서 Antigravity CLI 한도 수집 (예정)
 
 ## 고지
 

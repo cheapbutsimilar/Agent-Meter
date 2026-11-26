@@ -12,6 +12,9 @@
   let dragging = false;
   let memeTimer = 0;
 
+  // macOS has no taskbar: there the strip always floats (canDock from the Rust side)
+  const docked = (s) => S.canDock !== false && s.docked !== false;
+
   function render() {
     if (dragging) return;
     const s = S.settings;
@@ -27,8 +30,8 @@
       system,
       mode,
       // a strip on the desktop keeps a fixed two-row height
-      taskbarHeight: (s.mode === 'floating' || s.docked !== false ? taskbarHeight : Number(s.stripHeight) || 40) / scale,
-      docked: s.docked !== false,
+      taskbarHeight: (s.mode === 'floating' || docked(s) ? taskbarHeight : Number(s.stripHeight) || 40) / scale,
+      docked: docked(s),
     });
     // a new meme bubble (Korean UI): one short sound, and a re-render once it has faded out
     if (R.takeMemeEvents()) {

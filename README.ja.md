@@ -5,10 +5,11 @@
 # AgentMeter
 
 **Claude Code · Codex · Gemini CLI · Antigravity · Grok** の使用上限と使用量を、<br>
-タスクバーやデスクトップでそのまま確認できるデスクトップウィジェット
+Windows のタスクバー、Mac のメニューバー、デスクトップでそのまま確認できるデスクトップウィジェット
 
 [![Latest release](https://img.shields.io/github/v/release/cheapbutsimilar/Agent-Meter?style=flat-square&color=F05C1A&label=release)](https://github.com/cheapbutsimilar/Agent-Meter/releases/latest)
 ![Windows 10 · 11](https://img.shields.io/badge/Windows-10%20%C2%B7%2011-2B2B2B?style=flat-square)
+![macOS 11+](https://img.shields.io/badge/macOS-11%2B%20%C2%B7%20Apple%20Silicon%20%C2%B7%20Intel-2B2B2B?style=flat-square&logo=apple&logoColor=white)
 ![Rust · Tauri 2](https://img.shields.io/badge/Rust-Tauri%202-2B2B2B?style=flat-square&logo=tauri&logoColor=white)
 ![Installer 2.3 MB](https://img.shields.io/badge/installer-2.3%20MB-2B2B2B?style=flat-square)
 ![100% local](https://img.shields.io/badge/100%25%20local-zero%20telemetry-2B2B2B?style=flat-square)
@@ -63,7 +64,7 @@ AgentMeter は各サービスの公式な上限パーセンテージと、お使
 | --- | --- |
 | ストリップ ↔ カードの切り替え | `PageUp`、または右クリックメニュー |
 | ウィジェットの表示 / 非表示 | `Shift+PageUp` |
-| ダッシュボードを開く | ウィジェットをダブルクリック、またはトレイアイコンをクリック |
+| ダッシュボードを開く | ウィジェットをダブルクリック、またはトレイアイコンをクリック（Mac：メニューバーのアイコン → Open dashboard） |
 | ウィジェットの設定 | ウィジェットの ⚙ ボタン |
 | 位置の固定 · 常に手前 · 残量表示 | 右クリックメニュー |
 
@@ -79,7 +80,7 @@ AgentMeter は各サービスの公式な上限パーセンテージと、お使
 
 <img src="docs/screenshots/en/themes.png" alt="AgentMeter、Nordic、Midnight、Rose テーマ" width="100%">
 
-- **モード**：システム、ライト、ダーク（システムは Windows の設定に従います）
+- **モード**：システム、ライト、ダーク（システムは Windows / macOS の設定に従います）
 - **テーマ**：AgentMeter、Midnight、Nordic、Forest、Graphite、Rose（それぞれライトとダーク）
 - **色**：アクセント・背景・文字の色を自由に設定。文字のコントラストが 4.5:1 を下回ると警告します
 - **サイズ**：フォント、ダッシュボードの倍率（90–125%）、ウィジェットの不透明度・倍率・バーの長さ・カード幅・角の丸み
@@ -105,15 +106,28 @@ AgentMeter は各サービスの公式な上限パーセンテージと、お使
 
 ## インストール
 
+### Windows
+
 1. [**最新リリース**](https://github.com/cheapbutsimilar/Agent-Meter/releases/latest)から `AgentMeter_<version>_x64-setup.exe` をダウンロードして実行します。
 2. **「Windows によって PC が保護されました」** と表示されたら、**詳細情報 → 実行** をクリックしてください。個人のオープンソースプロジェクトのため、インストーラーにはコード署名がありません。すべてのリリースはこのリポジトリから[公開ワークフロー](.github/workflows/release.yml)でビルドされ、アップデートはインストール前に署名鍵で検証されます。
 3. ユーザー単位でインストールされるため、管理者権限は不要です。初回起動時にダッシュボードが開き、右下にウィジェットが、トレイにゲージアイコンが表示されます。
 4. 以前に Claude Code、Codex、Gemini CLI、Antigravity CLI にログインしていれば、上限がすぐに表示されます。そうでない場合は、ダッシュボードの概要またはエージェントで **Connect** をクリックしてください。CLI がなければインストールし、ログインを開きます。
 
+### macOS
+
+1. [**最新リリース**](https://github.com/cheapbutsimilar/Agent-Meter/releases/latest)から `AgentMeter_<version>_universal.dmg` をダウンロードします。1 つのファイルで Apple Silicon と Intel の Mac の両方でネイティブに動作します（macOS 11 Big Sur 以降）。
+2. `.dmg` を開き、**AgentMeter** を **アプリケーション** フォルダーにドラッグします。
+3. Apple の公証（notarization）を受けていない個人のオープンソースプロジェクトのため、初回起動時に **Gatekeeper** が「"AgentMeter" は開けません」「Apple は検証できませんでした」と表示してブロックします。次のどちらかの方法で一度だけ許可してください。
+   - **システム設定 → プライバシーとセキュリティ** を下にスクロールし、AgentMeter の横の **このまま開く** をクリックして確認します。（macOS 14 以前では、アプリケーションフォルダーでアプリを Control キーを押しながらクリック → **開く** → **開く** でも可能です。）
+   - またはターミナルで：`xattr -dr com.apple.quarantine /Applications/AgentMeter.app`
+4. AgentMeter は **メニューバー** に常駐します（Dock アイコンはありません）。ゲージアイコンをクリックするとメニューが開き、ウィジェットはストリップ・カードのどちらもデスクトップに浮かびます。`PageUp`（MacBook のキーボードでは `fn` + `↑`）で切り替え、**常に手前** はウィジェットの右クリックメニューにあります。Mac にはタスクバーがないため、ストリップも常にフローティング表示です。
+
+Mac では Claude Code のログイン情報を **キーチェーン**（`Claude Code-credentials`）から読み取るため、最初にアクセスを許可するか一度だけ尋ねられることがあります。**常に許可** を選んでください。Antigravity CLI の取得は現在 Windows のみです。
+
 新しいバージョンが出ると、**変更内容**と *今すぐ更新 / 後で* を示すウィンドウが表示されます。AgentMeter は起動 20 秒後と 3 時間ごとに確認します。ダッシュボード → General → Updates から、今すぐ確認、パッチノートの閲覧、サイレントインストールへの切り替えもできます。全履歴は [CHANGELOG.md](CHANGELOG.md)（韓国語）にあります。
 
-> Windows 10 / 11（x64）向けです。必要な WebView2 ランタイムは Windows に同梱されています。
-> macOS と Linux でも[ソースからビルド](#ソースからビルド)できますが、タスクバーへのドッキングは Windows 向けに設計されています。
+> Windows 10 / 11（x64）と macOS 11 以降（Apple Silicon・Intel）向けに配布しています。Windows に必要な WebView2 ランタイムは Windows に同梱されています。
+> Linux は[ソースからビルド](#ソースからビルド)でき、タスクバーへのドッキングは Windows 専用です。
 
 ## 仕組み
 
@@ -243,7 +257,7 @@ docs/screenshots/  README 画像。demo-gif.js（デモ GIF）と strip-duo.js �
 
 ## ロードマップ
 
-- macOS メニューバー対応（予定）
+- macOS での Antigravity CLI 上限の取得（予定）
 - 日本語・中国語 UI（予定）
 
 ## 注意事項

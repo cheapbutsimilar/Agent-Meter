@@ -88,7 +88,7 @@ pub fn run() {
             workers::spawn_usage(handle.clone());
             workers::spawn_system(handle.clone());
             // setup runs on the main thread, whose message loop the hook needs
-            #[cfg(windows)]
+            #[cfg(target_os = "windows")]
             windows::zorder::install();
             updater::spawn(handle.clone());
             fx::spawn(handle.clone());

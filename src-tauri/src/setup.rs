@@ -200,6 +200,16 @@ fn search_dirs() -> Vec<PathBuf> {
     dirs.push(h.join(".npm-global").join("bin"));
     dirs.push(PathBuf::from("/usr/local/bin"));
     dirs.push(PathBuf::from("/opt/homebrew/bin"));
+    // macOS apps started from Finder or at login get a bare PATH (/usr/bin:/bin:…), so
+    // also look where the official installers and the usual Node/Bun setups put CLIs
+    #[cfg(target_os = "macos")]
+    {
+        dirs.push(h.join(".claude").join("local"));
+        dirs.push(h.join(".bun").join("bin"));
+        dirs.push(h.join(".volta").join("bin"));
+        dirs.push(h.join("Library").join("pnpm"));
+        dirs.push(PathBuf::from("/opt/local/bin"));
+    }
     dirs
 }
 
@@ -392,7 +402,7 @@ fn sh_script(a: &Agent, en: bool) -> String {
 }
 
 fn open_terminal(path: &Path) -> std::io::Result<()> {
-    #[cfg(windows)]
+    #[cfg(target_os = "windows")]
     {
         use std::os::windows::process::CommandExt;
         const CREATE_NO_WINDOW: u32 = 0x0800_0000;

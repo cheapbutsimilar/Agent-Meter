@@ -4,11 +4,12 @@
 
 # AgentMeter
 
-在任务栏或桌面上直接查看<br>
+在 Windows 任务栏、Mac 菜单栏或桌面上直接查看<br>
 **Claude Code · Codex · Gemini CLI · Antigravity · Grok** 的使用额度和用量的桌面小组件
 
 [![Latest release](https://img.shields.io/github/v/release/cheapbutsimilar/Agent-Meter?style=flat-square&color=F05C1A&label=release)](https://github.com/cheapbutsimilar/Agent-Meter/releases/latest)
 ![Windows 10 · 11](https://img.shields.io/badge/Windows-10%20%C2%B7%2011-2B2B2B?style=flat-square)
+![macOS 11+](https://img.shields.io/badge/macOS-11%2B%20%C2%B7%20Apple%20Silicon%20%C2%B7%20Intel-2B2B2B?style=flat-square&logo=apple&logoColor=white)
 ![Rust · Tauri 2](https://img.shields.io/badge/Rust-Tauri%202-2B2B2B?style=flat-square&logo=tauri&logoColor=white)
 ![Installer 2.3 MB](https://img.shields.io/badge/installer-2.3%20MB-2B2B2B?style=flat-square)
 ![100% local](https://img.shields.io/badge/100%25%20local-zero%20telemetry-2B2B2B?style=flat-square)
@@ -63,7 +64,7 @@ AgentMeter 读取各服务官方提供的额度百分比和你本机上的使用
 | --- | --- |
 | 切换条形 ↔ 卡片 | `PageUp`，或右键菜单 |
 | 隐藏 / 显示小组件 | `Shift+PageUp` |
-| 打开仪表板 | 双击小组件，或点击托盘图标 |
+| 打开仪表板 | 双击小组件，或点击托盘图标（Mac：菜单栏图标 → Open dashboard） |
 | 小组件设置 | 小组件上的 ⚙ 按钮 |
 | 锁定位置 · 置顶 · 显示剩余量 | 右键菜单 |
 
@@ -79,7 +80,7 @@ AgentMeter 读取各服务官方提供的额度百分比和你本机上的使用
 
 <img src="docs/screenshots/en/themes.png" alt="AgentMeter、Nordic、Midnight 和 Rose 主题" width="100%">
 
-- **模式**：跟随系统、浅色或深色（跟随系统即跟随 Windows 设置）
+- **模式**：跟随系统、浅色或深色（跟随系统即跟随 Windows 或 macOS 设置）
 - **主题**：AgentMeter、Midnight、Nordic、Forest、Graphite 和 Rose，每个都有浅色和深色
 - **颜色**：自定义强调色、背景色和文字颜色，文字对比度低于 4.5:1 时会给出警告
 - **尺寸**：字体、仪表板缩放（90–125%），以及小组件的不透明度、缩放、进度条长度、卡片宽度和圆角
@@ -105,15 +106,28 @@ AgentMeter 读取各服务官方提供的额度百分比和你本机上的使用
 
 ## 安装
 
+### Windows
+
 1. 从[**最新版本**](https://github.com/cheapbutsimilar/Agent-Meter/releases/latest)下载 `AgentMeter_<version>_x64-setup.exe` 并运行。
 2. 如果 Windows 显示 **“Windows 已保护你的电脑”**，请点击**更多信息 → 仍要运行**。由于这是个人开源项目，安装包没有代码签名。每个版本都由本仓库的[公开工作流](.github/workflows/release.yml)构建，更新在安装前会用签名密钥进行校验。
 3. 仅为当前用户安装，不需要管理员权限。首次运行时会打开仪表板，小组件出现在右下角，托盘中会出现一个仪表图标。
 4. 如果你之前登录过 Claude Code、Codex、Gemini CLI 或 Antigravity CLI，额度会立即显示。否则请在仪表板概览或代理页面点击 **Connect**，它会在缺少 CLI 时自动安装，并打开登录。
 
+### macOS
+
+1. 从[**最新版本**](https://github.com/cheapbutsimilar/Agent-Meter/releases/latest)下载 `AgentMeter_<version>_universal.dmg`。同一个文件可在 Apple Silicon 和 Intel Mac 上原生运行（macOS 11 Big Sur 及以上）。
+2. 打开 `.dmg`，将 **AgentMeter** 拖到 **应用程序** 文件夹。
+3. 由于这是未经 Apple 公证（notarization）的个人开源项目，首次打开时 **Gatekeeper** 会提示“无法打开‘AgentMeter’”/“Apple 无法验证……”并阻止运行。用以下任一方式允许一次即可：
+   - 打开 **系统设置 → 隐私与安全性**，向下滚动，点击 AgentMeter 旁边的 **仍要打开** 并确认。（macOS 14 及更早版本也可以在应用程序文件夹中按住 Control 点按该应用 → **打开** → **打开**。）
+   - 或在终端中运行：`xattr -dr com.apple.quarantine /Applications/AgentMeter.app`
+4. AgentMeter 常驻在 **菜单栏**（没有 Dock 图标）。点击仪表图标即可打开菜单，小组件的条形和卡片两种布局都浮在桌面上。按 `PageUp` 切换（MacBook 键盘为 `fn` + `↑`），**置顶** 选项在小组件的右键菜单中。Mac 没有任务栏，因此条形布局也始终是浮动的。
+
+在 Mac 上，Claude Code 的登录信息从 **钥匙串**（`Claude Code-credentials`）读取，系统可能会询问一次是否允许访问，请选择 **始终允许**。Antigravity CLI 的额度采集目前仅支持 Windows。
+
 有新版本时，会弹出一个窗口显示**更新内容**，并提供*立即更新 / 稍后*。AgentMeter 会在启动 20 秒后以及每 3 小时检查一次。你也可以在仪表板 → General → Updates 中立即检查、查看更新说明，或切换为静默安装。完整历史见 [CHANGELOG.md](CHANGELOG.md)（韩文）。
 
-> 适用于 Windows 10 和 11（x64）。所需的 WebView2 运行时已随 Windows 提供。
-> macOS 和 Linux 可以[从源码构建](#从源码构建)，但任务栏停靠是为 Windows 设计的。
+> 提供 Windows 10 和 11（x64）以及 macOS 11 及以上（Apple Silicon 和 Intel）的发布版本。Windows 所需的 WebView2 运行时已随 Windows 提供。
+> Linux 可以[从源码构建](#从源码构建)，任务栏停靠仅适用于 Windows。
 
 ## 工作原理
 
@@ -243,7 +257,7 @@ docs/screenshots/  README 图片；demo-gif.js（演示 GIF）和 strip-duo.js �
 
 ## 路线图
 
-- 支持 macOS 菜单栏（计划中）
+- 在 macOS 上采集 Antigravity CLI 额度（计划中）
 - 日文和中文界面（计划中）
 
 ## 说明

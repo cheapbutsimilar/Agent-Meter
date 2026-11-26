@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       all_platforms:
-        description: 'macOS / Linux 설치 파일도 만들기 (기본: Windows만)'
+        description: 'Linux 설치 파일도 만들기 (기본: Windows + macOS)'
         type: boolean
         default: false
 
@@ -20,6 +20,24 @@ jobs:
       - name: Core tests
         run: cargo test -p agentmeter-core
 
+  # The whole app (Tauri shell included) has to build, lint and test on both desktops it ships for.
+  desktop:
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+      - name: Tests
+        run: cargo test --workspace
+
   bundle:
     # Installers are built on demand (Actions → CI → Run workflow) or for v* tags.
     if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
@@ -27,8 +45,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Manual runs build Windows only unless asked; v* tags build everything.
-        platform: ${{ fromJSON((github.event_name == 'push' || inputs.all_platforms) && '["windows-latest","macos-latest","ubuntu-22.04"]' || '["windows-latest"]') }}
+        # Manual runs build Windows + macOS unless asked for Linux too; v* tags build everything.
+        platform: ${{ fromJSON((github.event_name == 'push' || inputs.all_platforms) && '["windows-latest","macos-latest","ubuntu-22.04"]' || '["windows-latest","macos-latest"]') }}
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v4

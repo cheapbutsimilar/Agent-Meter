@@ -4,6 +4,7 @@ use crate::apply::{toggle_mode, update_settings};
 use crate::state::{lock, AppState, UsageCmd};
 use crate::tray_icon;
 use crate::windows::{open_dashboard, toggle_dashboard};
+use agentmeter_core::settings::CAN_DOCK;
 use serde_json::json;
 use tauri::image::Image;
 use tauri::menu::{CheckMenuItem, Menu, MenuBuilder, MenuItem};
@@ -56,7 +57,7 @@ pub fn tray_menu(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
             l("카드형", "Card"),
             !s.is_strip(),
         )?);
-    if s.is_strip() {
+    if s.is_strip() && CAN_DOCK {
         b = b.item(&check(
             app,
             "toggle:docked",
@@ -105,7 +106,7 @@ pub fn widget_menu(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
             l("위치 고정", "Lock position"),
             s.lock_position,
         )?);
-    if s.is_strip() {
+    if s.is_strip() && CAN_DOCK {
         b = b.item(&check(
             app,
             "toggle:docked",
@@ -191,7 +192,9 @@ pub fn create_tray(app: &AppHandle) -> tauri::Result<()> {
         .icon(app_icon(app))
         .tooltip("AgentMeter")
         .menu(&tray_menu(app)?)
-        .show_menu_on_left_click(false)
+        // macOS menu bar items open their menu on a click; on Windows a left click
+        // toggles the dashboard and the menu is on the right button
+        .show_menu_on_left_click(cfg!(target_os = "macos"))
         .on_menu_event(|app, e| handle_menu(app, e.id().as_ref()))
         .on_tray_icon_event(|tray, e| {
             if let TrayIconEvent::Click {
@@ -200,7 +203,9 @@ pub fn create_tray(app: &AppHandle) -> tauri::Result<()> {
                 ..
             } = e
             {
-                toggle_dashboard(tray.app_handle());
+                if !cfg!(target_os = "macos") {
+                    toggle_dashboard(tray.app_handle());
+                }
             }
         })
         .build(app)?;

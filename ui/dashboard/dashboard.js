@@ -379,14 +379,16 @@
     const o = s[tab];
     let html = pageHead();
     html += `<div class="fake-taskbar"><div class="apps"><i></i><i></i><i></i><i></i></div><div class="slot" id="pv-taskbar"></div><div class="clock">${esc(U.fmtClock(Date.now()))}<br/>${new Date().toLocaleDateString(dateLocale(), { month: 'numeric', day: 'numeric' })}</div></div>`;
-    html += `<div class="preview-cap">${esc(tr('disp.stripCap'))}</div>`;
+    html += `<div class="preview-cap">${esc(tr(S.canDock === false ? 'disp.stripCap.free' : 'disp.stripCap'))}</div>`;
     html += `<div class="preview"><div><h2>${esc(tr('disp.layout'))}</h2><div class="card rows">`;
     html += row(esc(tr('disp.layout')), tr('disp.layout.sub', { k: esc(s.hotkeyMode || tr('disp.none')) }), seg('mode', layoutOpts(), s.mode));
-    html += row(
-      esc(tr('disp.dock')),
-      esc(s.mode === 'floating' ? tr('disp.dock.cardOnly') : tr('disp.dock.sub')),
-      sw(`data-set="docked" ${s.mode === 'floating' ? 'disabled' : ''}`, s.docked !== false),
-    );
+    if (S.canDock !== false) {
+      html += row(
+        esc(tr('disp.dock')),
+        esc(s.mode === 'floating' ? tr('disp.dock.cardOnly') : tr('disp.dock.sub')),
+        sw(`data-set="docked" ${s.mode === 'floating' ? 'disabled' : ''}`, s.docked !== false),
+      );
+    }
     html += rowT('disp.value', seg('valueMode', [['used', esc(tr('disp.value.used'))], ['remaining', esc(tr('disp.value.remaining'))]], s.valueMode));
     html += rowT('disp.reset', seg('resetFormat', [['relative', esc(tr('disp.reset.relative'))], ['clock', esc(tr('disp.reset.clock'))]], s.resetFormat), '');
     html += `</div></div><div><h2>${esc(tr('disp.cardPreview'))}</h2><div class="float-preview" id="pv-floating"></div></div></div>`;

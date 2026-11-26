@@ -5,7 +5,7 @@ use serde_json::Value;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 
-#[cfg(windows)]
+#[cfg(target_os = "windows")]
 mod windows;
 
 pub const MAX_AGE_MS: i64 = 15 * 60 * 1000;
@@ -144,14 +144,14 @@ fn resolve(p: &Path) -> PathBuf {
 
 /// Is this the official, Google-signed agy.exe? (Windows Authenticode; elsewhere never.)
 pub fn verify(exe: &Path) -> Result<(), String> {
-    #[cfg(windows)]
+    #[cfg(target_os = "windows")]
     {
         if !exe.is_absolute() || !exe.is_file() {
             return Err("agy.exe 파일을 찾을 수 없습니다".into());
         }
         windows::verify_google(&resolve(exe)).map_err(String::from)
     }
-    #[cfg(not(windows))]
+    #[cfg(not(target_os = "windows"))]
     {
         let _ = exe;
         Err("Antigravity 수집은 현재 Windows에서만 지원합니다".into())
@@ -162,7 +162,7 @@ pub fn verify(exe: &Path) -> Result<(), String> {
 /// signed agy.exe wins. Windows only; `None` elsewhere. Runs a short child process, so call
 /// it from a worker thread.
 pub fn discover(user_home: &Path) -> Option<PathBuf> {
-    #[cfg(windows)]
+    #[cfg(target_os = "windows")]
     {
         use std::os::windows::process::CommandExt;
         const CREATE_NO_WINDOW: u32 = 0x0800_0000;
@@ -189,7 +189,7 @@ pub fn discover(user_home: &Path) -> Option<PathBuf> {
             .map(|p| resolve(&p))
             .find(|p| verify(p).is_ok())
     }
-    #[cfg(not(windows))]
+    #[cfg(not(target_os = "windows"))]
     {
         let _ = user_home;
         None
@@ -207,11 +207,11 @@ pub fn onboarded(user_home: &Path) -> bool {
 /// Windows 10 1809+ (ConPTY). May block for at most the collection timeout plus
 /// OS cleanup; callers should use a worker thread. No prompts/approvals are sent.
 pub fn collect(exe: &Path, user_home: &Path) -> Result<Snapshot, String> {
-    #[cfg(windows)]
+    #[cfg(target_os = "windows")]
     {
         windows::collect(exe, user_home).map_err(String::from)
     }
-    #[cfg(not(windows))]
+    #[cfg(not(target_os = "windows"))]
     {
         let _ = (exe, user_home);
         Err("Antigravity 수집은 현재 Windows에서만 지원합니다".into())

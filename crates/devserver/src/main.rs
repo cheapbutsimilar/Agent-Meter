@@ -73,7 +73,7 @@ fn main() {
 }
 
 fn open_browser(url: &str) {
-    #[cfg(windows)]
+    #[cfg(target_os = "windows")]
     let r = Command::new("cmd").args(["/C", "start", "", url]).spawn();
     #[cfg(target_os = "macos")]
     let r = Command::new("open").arg(url).spawn();

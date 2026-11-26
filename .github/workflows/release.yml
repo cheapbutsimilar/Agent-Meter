@@ -1,8 +1,12 @@
 name: Release
 
-# Every push to the development branch publishes a signed Windows build as a GitHub Release
-# (v0.2.<run number>) with latest.json, which installed copies of AgentMeter poll to update
-# themselves. Needs the TAURI_SIGNING_PRIVATE_KEY repository secret; without it this skips.
+# Every push to main publishes a signed build for Windows (NSIS installer) and macOS
+# (universal .dmg, Apple Silicon + Intel) as one GitHub Release, v0.2.<run number>, with a
+# latest.json covering both, which installed copies of AgentMeter poll to update themselves.
+#   prepare  creates the release as a draft, with the patch notes from CHANGELOG.md
+#   build    Windows, then macOS (one after the other, so their latest.json entries merge)
+#   publish  makes the draft public once at least the Windows build is in it
+# Needs the TAURI_SIGNING_PRIVATE_KEY repository secret; without it this skips.
 on:
   push:
     branches: [main]
@@ -17,12 +21,15 @@ permissions:
   contents: write
 
 jobs:
-  windows:
-    runs-on: windows-latest
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      ok: ${{ steps.key.outputs.ok }}
+      version: ${{ steps.version.outputs.version }}
+      release_id: ${{ steps.draft.outputs.id }}
     steps:
       - name: Signing key present?
         id: key
-        shell: bash
         env:
           KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
         run: |
@@ -39,37 +46,59 @@ jobs:
         with:
           node-version: 22
       - name: Version 0.2.<run>
+        id: version
         if: steps.key.outputs.ok == 'true'
-        shell: bash
         run: |
-          node -e "
-            const fs = require('fs');
-            const f = 'src-tauri/tauri.conf.json';
-            const c = JSON.parse(fs.readFileSync(f, 'utf8'));
-            const [major, minor] = c.version.split('.');
-            c.version = major + '.' + minor + '.' + process.env.GITHUB_RUN_NUMBER;
-            fs.writeFileSync(f, JSON.stringify(c, null, 2));
-            console.log('version', c.version);
-          "
-      - uses: dtolnay/rust-toolchain@stable
+          node scripts/set-version.js
+          echo "version=$(node -p "require('./src-tauri/tauri.conf.json').version")" >> "$GITHUB_OUTPUT"
+      - name: Draft release with this version's patch notes
+        id: draft
         if: steps.key.outputs.ok == 'true'
-      - uses: Swatinem/rust-cache@v2
-        if: steps.key.outputs.ok == 'true'
-      - run: npm install
-        if: steps.key.outputs.ok == 'true'
-      - name: Patch notes for this version
-        id: notes
-        if: steps.key.outputs.ok == 'true'
-        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.version.outputs.version }}
         run: |
           node scripts/release-notes.js
-          {
-            echo 'body<<AGENTMETER_NOTES_END'
-            cat release-notes.md
-            echo 'AGENTMETER_NOTES_END'
-          } >> "$GITHUB_OUTPUT"
+          id=$(gh api "repos/$GITHUB_REPOSITORY/releases" \
+            -f tag_name="v$VERSION" -f target_commitish="$GITHUB_SHA" \
+            -f name="AgentMeter v$VERSION" -f body="$(cat release-notes.md)" \
+            -F draft=true -F prerelease=false --jq .id)
+          echo "id=$id" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: prepare
+    if: needs.prepare.outputs.ok == 'true'
+    strategy:
+      fail-fast: false
+      # one at a time: each upload merges its platforms into the release's latest.json
+      max-parallel: 1
+      matrix:
+        include:
+          - platform: windows-latest
+            args: --config src-tauri/tauri.release.conf.json
+            rust_targets: ''
+          - platform: macos-latest
+            args: --target universal-apple-darwin --config src-tauri/tauri.release.macos.conf.json
+            rust_targets: aarch64-apple-darwin,x86_64-apple-darwin
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Version and bundled patch notes
+        shell: bash
+        run: |
+          node scripts/set-version.js
+          node scripts/release-notes.js
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust_targets }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.platform }}
+      - run: npm install
       - uses: tauri-apps/tauri-action@v0
-        if: steps.key.outputs.ok == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
@@ -77,12 +106,27 @@ jobs:
           # only these builds update themselves automatically
           AGENTMETER_RELEASE: '1'
         with:
-          tagName: v__VERSION__
-          releaseName: AgentMeter v__VERSION__
-          # shown in the app's update popup (latest.json notes) and on the release page
-          releaseBody: ${{ steps.notes.outputs.body }}
-          releaseDraft: false
-          prerelease: false
-          releaseCommitish: ${{ github.sha }}
+          releaseId: ${{ needs.prepare.outputs.release_id }}
+          tagName: v${{ needs.prepare.outputs.version }}
           updaterJsonPreferNsis: true
-          args: --config src-tauri/tauri.release.conf.json
+          args: ${{ matrix.args }}
+
+  publish:
+    needs: [prepare, build]
+    # publish what got built even if one platform failed (the run still shows the failure),
+    # as long as the release has an update manifest to serve
+    if: always() && needs.prepare.outputs.ok == 'true' && needs.prepare.outputs.release_id != ''
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish the draft
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ID: ${{ needs.prepare.outputs.release_id }}
+        run: |
+          assets=$(gh api "repos/$GITHUB_REPOSITORY/releases/$ID/assets" --jq '.[].name')
+          echo "$assets"
+          if ! echo "$assets" | grep -qx latest.json; then
+            echo "::error::no latest.json in the draft, leaving it unpublished"
+            exit 1
+          fi
+          gh api -X PATCH "repos/$GITHUB_REPOSITORY/releases/$ID" -F draft=false -f make_latest=true --jq .html_url

@@ -330,14 +330,14 @@ pub fn toggle_dashboard(app: &AppHandle) {
 /// Keep the widget above other windows (and above the taskbar in taskbar mode).
 /// Called from the keeper thread; on Windows it also arms [`zorder`]'s foreground hook.
 pub fn keep_on_top(win: &WebviewWindow) {
-    #[cfg(windows)]
+    #[cfg(target_os = "windows")]
     {
         if let Ok(hwnd) = win.hwnd() {
             zorder::set_target(hwnd.0 as isize);
             zorder::raise();
         }
     }
-    #[cfg(not(windows))]
+    #[cfg(not(target_os = "windows"))]
     {
         let _ = win.set_always_on_top(true);
     }
@@ -345,14 +345,14 @@ pub fn keep_on_top(win: &WebviewWindow) {
 
 /// Stop re-raising the widget (hidden, or floating without "always on top").
 pub fn release_top() {
-    #[cfg(windows)]
+    #[cfg(target_os = "windows")]
     zorder::set_target(0);
 }
 
 /// Windows brings the taskbar to the front whenever another app is activated, which used to
 /// cover the docked widget until the next keeper tick. A WinEvent hook on foreground changes
 /// puts it back right away instead.
-#[cfg(windows)]
+#[cfg(target_os = "windows")]
 pub mod zorder {
     use std::sync::atomic::{AtomicIsize, Ordering};
     use std::time::Duration;

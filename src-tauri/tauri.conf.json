@@ -19,7 +19,7 @@
     "targets": "all",
     "category": "DeveloperTool",
     "shortDescription": "AI 코딩 에이전트 사용량 모니터",
-    "longDescription": "Claude Code, Codex, Gemini CLI, Grok의 사용 한도·토큰·비용을 작업표시줄이나 떠 있는 위젯으로 보여주는 모니터",
+    "longDescription": "Claude Code, Codex, Gemini CLI, Antigravity, Grok의 사용 한도·토큰·비용을 작업표시줄·메뉴바나 떠 있는 위젯으로 보여주는 모니터",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -29,8 +29,16 @@
     ],
     "windows": {
       "nsis": {
-        "installMode": "currentUser"
+        "installMode": "currentUser",
+        "languages": [
+          "English",
+          "Korean"
+        ]
       }
+    },
+    "macOS": {
+      "minimumSystemVersion": "11.0",
+      "signingIdentity": "-"
     }
   },
   "plugins": {

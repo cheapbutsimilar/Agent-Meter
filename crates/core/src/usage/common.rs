@@ -387,14 +387,14 @@ pub fn apply_resets(windows: Vec<UsageWindow>, now: i64) -> Vec<UsageWindow> {
 /// Run a user command (through the shell) with a timeout and parse its JSON output.
 pub fn run_command(command: &str, timeout: Duration) -> Result<Value, String> {
     use wait_timeout::ChildExt;
-    #[cfg(windows)]
+    #[cfg(target_os = "windows")]
     let mut cmd = {
         use std::os::windows::process::CommandExt;
         let mut c = Command::new("cmd");
         c.args(["/C", command]).creation_flags(0x0800_0000); // CREATE_NO_WINDOW
         c
     };
-    #[cfg(not(windows))]
+    #[cfg(not(target_os = "windows"))]
     let mut cmd = {
         let mut c = Command::new("sh");
         c.args(["-c", command]);

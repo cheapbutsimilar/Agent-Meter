@@ -273,6 +273,9 @@ impl Default for Settings {
     }
 }
 
+/// Whether this platform has a taskbar the strip can dock into (not macOS).
+pub const CAN_DOCK: bool = !cfg!(target_os = "macos");
+
 impl Settings {
     pub fn provider(&self, id: &str) -> ProviderConfig {
         self.providers.get(id).cloned().unwrap_or_default()
@@ -283,9 +286,10 @@ impl Settings {
         self.mode != "floating"
     }
 
-    /// Strip snapped into the taskbar.
+    /// Strip snapped into the taskbar. macOS has no taskbar to dock into (the menu bar
+    /// and the Dock are off limits), so there the strip always floats.
     pub fn is_docked(&self) -> bool {
-        self.is_strip() && self.docked
+        CAN_DOCK && self.is_strip() && self.docked
     }
 
     /// Load from JSON, filling in defaults (including providers missing from old files).

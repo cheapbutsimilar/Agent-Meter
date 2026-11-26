@@ -4,7 +4,7 @@ use crate::apply::update_settings;
 use crate::state::{lock, AppState, Drag, UsageCmd};
 use crate::windows::{self, layout_widget, screen_geometry, DASHBOARD, WIDGET};
 use crate::{hotkeys, menu};
-use agentmeter_core::settings::Pos;
+use agentmeter_core::settings::{Pos, CAN_DOCK};
 use agentmeter_core::time::now_ms;
 use serde_json::{json, Value};
 use std::time::Duration;
@@ -26,6 +26,7 @@ pub fn app_init(app: AppHandle, window: WebviewWindow, st: State<AppState>) -> V
         "usage": usage,
         "system": lock(&st.last_system).clone(),
         "platform": std::env::consts::OS,
+        "canDock": CAN_DOCK,
         "version": app.package_info().version.to_string(),
         "page": page,
         "taskbarHeight": band.h,
@@ -170,7 +171,7 @@ pub fn drag_end(app: AppHandle, window: WebviewWindow, st: State<AppState>) {
     // taskbar, so a strip dropped low on another monitor stays there.
     let over = x < band.x + band.w && x + w > band.x;
     let near = over && y + h > band.y - SNAP_PX && y < band.y + band.h + SNAP_PX;
-    if s.docked && !d.undocked || near {
+    if CAN_DOCK && (s.docked && !d.undocked || near) {
         update_settings(&app, json!({ "docked": true, "taskbarOffset": offset }));
     } else {
         update_settings(
@@ -225,14 +226,21 @@ pub fn open_url(app: AppHandle, url: String) {
 }
 
 /// A short system sound for the widget's meme bubble (Korean UI). Played natively so the
-/// webview's autoplay rules never swallow it; silent outside Windows.
+/// webview's autoplay rules never swallow it.
 #[tauri::command]
 pub fn meme_sound() {
-    #[cfg(windows)]
+    #[cfg(target_os = "windows")]
     unsafe {
         use windows_sys::Win32::System::Diagnostics::Debug::MessageBeep;
         use windows_sys::Win32::UI::WindowsAndMessaging::MB_ICONASTERISK;
         MessageBeep(MB_ICONASTERISK);
+    }
+    // a built-in system sound, played without waiting for it to finish
+    #[cfg(target_os = "macos")]
+    {
+        let _ = std::process::Command::new("/usr/bin/afplay")
+            .arg("/System/Library/Sounds/Glass.aiff")
+            .spawn();
     }
 }
 

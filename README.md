@@ -5,10 +5,11 @@
 # AgentMeter
 
 Live usage limits for **Claude Code · Codex · Gemini CLI · Antigravity · Grok**,<br>
-right in your taskbar or on your desktop.
+right in your Windows taskbar, your Mac menu bar or on your desktop.
 
 [![Latest release](https://img.shields.io/github/v/release/cheapbutsimilar/Agent-Meter?style=flat-square&color=F05C1A&label=release)](https://github.com/cheapbutsimilar/Agent-Meter/releases/latest)
 ![Windows 10 · 11](https://img.shields.io/badge/Windows-10%20%C2%B7%2011-2B2B2B?style=flat-square)
+![macOS 11+](https://img.shields.io/badge/macOS-11%2B%20%C2%B7%20Apple%20Silicon%20%C2%B7%20Intel-2B2B2B?style=flat-square&logo=apple&logoColor=white)
 ![Rust · Tauri 2](https://img.shields.io/badge/Rust-Tauri%202-2B2B2B?style=flat-square&logo=tauri&logoColor=white)
 ![Installer 2.3 MB](https://img.shields.io/badge/installer-2.3%20MB-2B2B2B?style=flat-square)
 ![100% local](https://img.shields.io/badge/100%25%20local-zero%20telemetry-2B2B2B?style=flat-square)
@@ -66,7 +67,7 @@ One widget, two layouts. Press `PageUp` to switch.
 | --- | --- |
 | Switch strip ↔ card | `PageUp`, or the right-click menu |
 | Hide / show the widget | `Shift+PageUp` |
-| Open the dashboard | Double-click the widget, or click the tray icon |
+| Open the dashboard | Double-click the widget, or click the tray icon (on a Mac: the menu bar icon → Open dashboard) |
 | Widget settings | The ⚙ button on the widget |
 | Lock position · always on top · show remaining | Right-click menu |
 
@@ -82,7 +83,7 @@ Pick a theme in Dashboard → **Appearance**. Every value stays within safe rang
 
 <img src="docs/screenshots/en/themes.png" alt="AgentMeter, Nordic, Midnight and Rose themes" width="100%">
 
-- **Mode**: system, light or dark (system follows Windows)
+- **Mode**: system, light or dark (system follows Windows or macOS)
 - **Themes**: AgentMeter, Midnight, Nordic, Forest, Graphite and Rose, each in light and dark
 - **Colors**: your own accent, background and text colors, with a warning when text contrast drops below 4.5:1
 - **Size**: font, dashboard scale (90–125%), and widget opacity, scale, bar length, card width and corner radius
@@ -108,6 +109,8 @@ Pick a theme in Dashboard → **Appearance**. Every value stays within safe rang
 
 ## Install
 
+### Windows
+
 1. Download `AgentMeter_<version>_x64-setup.exe` from the [**latest release**](https://github.com/cheapbutsimilar/Agent-Meter/releases/latest) and run it.
 2. If Windows shows **"Windows protected your PC"**, click **More info → Run anyway**. The installer isn't
    code-signed because this is an independent open-source project. Every release is built by a
@@ -119,12 +122,29 @@ Pick a theme in Dashboard → **Appearance**. Every value stays within safe rang
    away. If not, click **Connect** on the dashboard overview or under Agents. It installs the CLI if it's missing
    and opens its login.
 
+### macOS
+
+1. Download `AgentMeter_<version>_universal.dmg` from the [**latest release**](https://github.com/cheapbutsimilar/Agent-Meter/releases/latest).
+   One file runs natively on both Apple Silicon and Intel Macs (macOS 11 Big Sur or later).
+2. Open the `.dmg` and drag **AgentMeter** into **Applications**.
+3. The app isn't notarized by Apple (an independent open-source project), so **Gatekeeper** blocks the first
+   launch with *"AgentMeter" can't be opened* / *Apple could not verify…*. Allow it once in either way:
+   - **System Settings → Privacy & Security**, scroll down and click **Open Anyway** next to AgentMeter, then
+     confirm. (On macOS 14 and earlier, Control-click the app in Applications → **Open** → **Open** also works.)
+   - Or in Terminal: `xattr -dr com.apple.quarantine /Applications/AgentMeter.app`
+4. AgentMeter lives in the **menu bar** (no Dock icon). Click the gauge icon for the menu, and use the floating
+   widget in either layout (strip or card). `PageUp` switches them (`fn` + `↑` on a MacBook keyboard), and
+   *Always on top* is in the widget's right-click menu. A Mac has no taskbar, so the strip always floats.
+
+On a Mac, Claude Code's login is read from the **Keychain** (`Claude Code-credentials`), so macOS may ask once
+whether AgentMeter may use it: choose **Always Allow**. Antigravity CLI collection is Windows-only for now.
+
 When a new version ships, a window shows **what's new** with *Update now / Later*. AgentMeter checks 20 seconds
 after start and every 3 hours. You can also check now, read the patch notes, or switch to silent installs in
 Dashboard → General → Updates. The full history is in [CHANGELOG.md](CHANGELOG.md) (Korean).
 
-> Built for Windows 10 and 11 (x64). The WebView2 runtime it needs ships with Windows.
-> macOS and Linux can [build from source](#build-from-source), but taskbar docking is designed for Windows.
+> Released for Windows 10 and 11 (x64) and macOS 11+ (Apple Silicon and Intel). The WebView2 runtime Windows
+> needs ships with Windows. Linux can [build from source](#build-from-source); taskbar docking is Windows-only.
 
 ## How it works
 
@@ -282,7 +302,7 @@ See [docs/HANDOFF.md](docs/HANDOFF.md) for building another app on the same desi
 
 ## Roadmap
 
-- macOS menu bar support (planned)
+- Antigravity CLI limits on macOS (planned)
 
 ## Notes
 

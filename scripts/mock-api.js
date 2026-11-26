@@ -180,7 +180,9 @@
       settings,
       usage,
       system: { cpu: 3, ram: 45 },
-      platform: 'windows',
+      // ?platform=macos previews the Mac build (no taskbar to dock into)
+      platform: qs.get('platform') || 'windows',
+      canDock: qs.get('platform') !== 'macos',
       version: '0.2.24',
       page: qs.get('page'),
       taskbarHeight: Number(qs.get('tb')) || 48,
