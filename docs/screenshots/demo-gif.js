@@ -1,12 +1,14 @@
 #!/usr/bin/env node
 /* README demo GIF: a whole 1920x1080 desktop with the strip docked next to the taskbar clock (all
  * five agents), then a camera that zooms in about 2.4x and pans along it to the clock so every number reads, PageUp switching it to
- * the card and back, and the limits, reset countdowns, pace ticks and run-out forecast moving as
+ * the card (shown at 1.6x, panning from its top to its bottom) and back, and the limits, reset countdowns, pace ticks and run-out forecast moving as
  * time passes (a time-lapse).
  * A reproduction, not a screen recording: the real widget UI (ui/widget) is rendered with the
  * demo data of scripts/mock-api.js, frame by frame, and the frames are joined with ffmpeg.
  *   node docs/screenshots/demo-gif.js        → docs/screenshots/demo.gif, docs/screenshots/en/demo.gif
- * Requires Playwright with Chromium and ffmpeg. Kept under docs/ so changing it never cuts a release. */
+ * Requires Playwright with Chromium, ffmpeg and gifsicle. Kept under docs/ so changing it never cuts a release.
+ * Size budget: GitHub's image proxy (camo) refuses anything over 5 MB, so each GIF must stay under
+ * MAX_BYTES; gifsicle's light lossy pass (identical frames merged, timing kept) gets it there. */
 'use strict';
 
 const http = require('http');
@@ -66,11 +68,16 @@ function stage(lang) {
   .cap .brand i { width: 16px; height: 16px; border-radius: 5px; background: #F05C1A; box-shadow: inset 0 0 0 4px rgba(0,0,0,.18); }
   .cap h1 { margin: 18px 0 0; font-size: 30px; line-height: 1.2; font-weight: 800; letter-spacing: -.02em; }
   .cap p { margin: 10px 0 0; font-size: 17px; color: #b9b9b9; font-weight: 500; }
+  /* while the big card fills the right side the caption steps down a size so they never meet */
+  .cap.small h1 { margin-top: 14px; font-size: 22px; }
+  .cap.small p { margin-top: 8px; font-size: 15px; }
   .key { position: absolute; z-index: 2; left: 40px; top: 180px; display: flex; align-items: center; gap: 12px; opacity: 0; }
   .key b { display: inline-block; padding: 9px 14px 11px; border-radius: 9px; font-size: 17px; font-weight: 700; color: #f5f5f5;
            background: linear-gradient(#3b3d42, #2c2e32); border: 1px solid #55585e; box-shadow: 0 4px 0 #18191b, 0 8px 18px rgba(0,0,0,.45); }
   .key.down b { transform: translateY(3px); box-shadow: 0 1px 0 #18191b, 0 3px 8px rgba(0,0,0,.45); background: linear-gradient(#4a3226, #3a281f); border-color: #F05C1A; }
   .lapse { position: absolute; z-index: 2; right: 16px; top: 12px; padding: 5px 10px; border-radius: 999px; background: rgba(23,24,27,.82); font-size: 12px; font-weight: 600; color: #9a9a9a; display: flex; gap: 6px; align-items: center; }
+  /* the big card reaches the top right corner, so over it the badge sits by the brand instead */
+  body.cardshot .lapse { right: auto; left: 160px; top: 36px; }
   .lapse i { width: 7px; height: 7px; border-radius: 50%; background: #e5484d; }
   .bar { position: absolute; left: 0; right: 0; bottom: 0; height: 48px; background: rgba(32,32,34,.96); border-top: 1px solid rgba(255,255,255,.08); }
   .bar .apps { position: absolute; left: 12px; top: 8px; display: flex; gap: 6px; }
@@ -84,7 +91,7 @@ function stage(lang) {
   /* the wallpaper stays put on the body while the camera moves, so frames differ only where things move */
   .card { filter: drop-shadow(0 18px 34px rgba(0,0,0,.55)); }
   </style></head><body>
-  <div class="cap"><div class="brand"><i></i>AgentMeter</div><h1 id="h1"></h1><p id="p"></p></div>
+  <div class="cap" id="cap"><div class="brand"><i></i>AgentMeter</div><h1 id="h1"></h1><p id="p"></p></div>
   <div class="key" id="key"><b>PageUp</b></div>
   <div class="lapse"><i></i>${TEXT[lang].lapse}</div>
   <div id="world">
@@ -149,18 +156,24 @@ function stageApi(desk) {
     strip.style.top = '0px';
     card.style.left = `${W - 16 - Number(card.width)}px`;
     card.style.top = `${H - 48 - 14 - Number(card.height)}px`;
-    // cameras as the world's visible left edge and scale, anchored to the bottom
+    // cameras as the world's visible left edge (x), scale (s) and, optionally, top edge (y);
+    // without y a shot is anchored to the bottom of the desktop
     const Z = 2.4;
-    // the card shot: the whole card and the taskbar, anchored bottom right
-    // (air above the card keeps the time-lapse badge clear)
-    const sc = innerHeight / (Number(card.height) + 48 + 14 + 96);
+    // the card shots: the card at 1.6x, right-aligned, taller than the frame, so one shot on its
+    // top (40 px below the frame's top edge, clear of the time-lapse badge) and one on its
+    // bottom (16 px above the frame's bottom edge), with a slow pan between them
+    const SC = 1.6;
+    const cardTop = H - 48 - 14 - Number(card.height);
+    const cardBottom = H - 48 - 14;
+    const cx = W - innerWidth / SC;
     window.CAMS = {
       wide: { x: 0, s: innerWidth / W },
       zl: { x: left - 10, s: Z }, // zoomed on the start of the strip
       zr: { x: W - innerWidth / Z, s: Z }, // zoomed on its end and the clock
-      card: { x: W - innerWidth / sc, s: sc },
+      cardTop: { x: cx, s: SC, y: cardTop - 40 / SC },
+      cardBot: { x: cx, s: SC, y: cardBottom + 16 / SC - innerHeight / SC },
     };
-    window.WORLD = { W, H, Z, stripW: sw };
+    window.WORLD = { W, H, Z, SC, stripW: sw, cardW: Number(card.width), cardH: Number(card.height) };
   };
   const frames = () => ['strip', 'card'].map((id) => $(id).contentWindow.agentMeter);
   window.demoInit = async () => {
@@ -230,6 +243,8 @@ function stageApi(desk) {
     for (const api of frames()) for (const id of ['claude', 'codex', 'gemini', 'antigravity', 'grok']) api.__patchProvider(id, patch);
     $('h1').textContent = f.cap[0];
     $('p').textContent = f.cap[1];
+    $('cap').classList.toggle('small', !!f.small);
+    document.body.classList.toggle('cardshot', f.mode >= 0.5);
     $('clock').innerHTML = f.clock;
     $('key').style.opacity = f.key;
     $('key').classList.toggle('down', !!f.down);
@@ -250,16 +265,25 @@ function stageApi(desk) {
     const w = innerWidth / A.s + (innerWidth / B.s - innerWidth / A.s) * c;
     const x = A.x + (B.x - A.x) * c;
     const s = innerWidth / w;
-    const y = WORLD.H - innerHeight / s;
+    // bottom-anchored shots keep the desktop's bottom edge in frame all the way; a shot with
+    // its own top edge moves there in step with x
+    const y =
+      A.y == null && B.y == null
+        ? WORLD.H - innerHeight / s
+        : (A.y ?? WORLD.H - innerHeight / A.s) + ((B.y ?? WORLD.H - innerHeight / B.s) - (A.y ?? WORLD.H - innerHeight / A.s)) * c;
     $('world').style.transform = `scale(${s}) translate(${-x}px, ${-y}px)`;
   };
 }
 
+/** Largest GIF GitHub's README image proxy still shows comfortably (its hard limit is 5 MiB). */
+const MAX_BYTES = 4.5 * 1024 * 1024;
+
 /** Frames per second of the GIF (40 ms per frame, a whole number of GIF centiseconds). */
 const FPS = 25;
 
-/** The frame list, sampled at FPS from timed segments; about 12 s, the strip most of it.
- * Each frame: {t, mode, cam: [from, to, k], key, down, cap, clock, ms}. Shots: wide / zl / zr / card. */
+/** The frame list, sampled at FPS from timed segments; about 15 s.
+ * Each frame: {t, mode, cam: [from, to, k], key, down, cap, small, clock, ms}.
+ * Shots: wide / zl / zr / cardTop / cardBot. */
 function timeline(T) {
   const ease = (x) => (x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2);
   const lerp = (a, b, k) => a + (b - a) * k;
@@ -280,11 +304,14 @@ function timeline(T) {
     S(0.65, ['zr', 'zr'], T.b, { dt: 4.5 }),
     // ③ PageUp: the strip sinks, the card rises, the camera pulls back
     S(0.3, ['zr', 'zr'], T.c, { key: [1, 1] }),
-    S(0.72, ['zr', 'card'], T.c, { mode: [0, 1], key: [1, 1], down: 0.27, ease: true }),
-    S(1.45, ['card', 'card'], T.c, { mode: [1, 1], dt: 8.8, key: [1, 0] }),
+    S(0.72, ['zr', 'cardTop'], T.c, { mode: [0, 1], key: [1, 1], down: 0.27, ease: true }),
+    // the card, big: a beat on Claude and Codex, a slow pan down to Gemini, Antigravity and Grok
+    S(0.5, ['cardTop', 'cardTop'], T.c, { mode: [1, 1], dt: 2, key: [1, 0] }),
+    S(3.0, ['cardTop', 'cardBot'], T.c, { mode: [1, 1], dt: 12 }),
+    S(0.4, ['cardBot', 'cardBot'], T.c, { mode: [1, 1], dt: 1.6 }),
     // ④ PageUp again: back to the strip, zoomed on the clock end, then pan back along it
-    S(0.3, ['card', 'card'], T.d, { mode: [1, 1], key: [1, 1] }),
-    S(0.72, ['card', 'zr'], T.d, { mode: [1, 0], key: [1, 1], down: 0.27, ease: true }),
+    S(0.3, ['cardBot', 'cardBot'], T.d, { mode: [1, 1], key: [1, 1] }),
+    S(0.72, ['cardBot', 'zr'], T.d, { mode: [1, 0], key: [1, 1], down: 0.27, ease: true }),
     S(1.6, ['zr', 'zl'], T.d, { dt: 9.6, key: [1, 0] }),
     S(0.3, ['zl', 'zl'], T.d),
     // zoom back out so the loop starts where it ends
@@ -307,6 +334,7 @@ function timeline(T) {
         key: lerp(g.key[0], g.key[1], keyX),
         down: (i - 1) * (ms / 1000) < g.down,
         cap: g.cap,
+        small: g.cap === T.c || g.cap === T.d,
         clock: clock(t + g.dt * x),
         ms,
       });
@@ -342,20 +370,25 @@ async function main() {
       const file = path.join(tmp, `f${String(i).padStart(4, '0')}.png`);
       await p.screenshot({ path: file, animations: 'disabled' });
     }
-    const { Z: zoom, stripW } = await p.evaluate(() => window.WORLD);
+    const { Z: zoom, SC: cardZoom, stripW, cardW, cardH } = await p.evaluate(() => window.WORLD);
     await p.close();
     const dir = path.join(OUT, sub);
     fs.mkdirSync(dir, { recursive: true });
     const gif = path.join(dir, 'demo.gif');
     execFileSync('ffmpeg', [
       '-y', '-loglevel', 'error', '-framerate', String(FPS), '-i', path.join(tmp, 'f%04d.png'),
-      '-filter_complex', '[0:v]split[a][b];[a]palettegen=max_colors=160:stats_mode=full[p];[b][p]paletteuse=dither=bayer:bayer_scale=4:diff_mode=rectangle',
+      '-filter_complex', '[0:v]split[a][b];[a]palettegen=max_colors=64:stats_mode=full[p];[b][p]paletteuse=dither=bayer:bayer_scale=5:diff_mode=rectangle',
       '-loop', '0', gif,
     ]);
+    // a light lossy LZW pass: text stays crisp, the file drops by about a third
+    execFileSync('gifsicle', ['-b', '-O3', '--lossy=20', gif]);
+    const bytes = fs.statSync(gif).size;
+    if (bytes > MAX_BYTES) errors.push(`${lang}: ${bytes} bytes is over the ${MAX_BYTES}-byte budget`);
     const total = frames.reduce((a, f) => a + f.ms, 0);
     const strip = frames.filter((f) => f.mode < 0.5).reduce((a, f) => a + f.ms, 0);
-    console.log('saved', path.relative(ROOT, gif), `${(fs.statSync(gif).size / 1048576).toFixed(2)} MB`, `${frames.length} frames @ ${FPS} fps`,
-      `${(total / 1000).toFixed(1)} s (strip ${Math.round((strip / total) * 100)}%)`, `zoom ${zoom}x, strip text at ${(zoom * SCALE).toFixed(2)}x its real size, zoomed strip ${Math.round(stripW * zoom * SCALE)} px across the pan`);
+    console.log('saved', path.relative(ROOT, gif), `${bytes} bytes (${(bytes / 1048576).toFixed(2)} MiB)`, `${frames.length} frames @ ${FPS} fps`,
+      `${(total / 1000).toFixed(1)} s (strip ${Math.round((strip / total) * 100)}%)`, `zoom ${zoom}x, strip text at ${(zoom * SCALE).toFixed(2)}x its real size, zoomed strip ${Math.round(stripW * zoom * SCALE)} px across the pan`,
+      `card ${cardW}x${cardH} at ${cardZoom}x (${Math.round(((cardW * cardZoom) / VIEW.width) * 100)}% of the frame width)`);
     fs.rmSync(tmp, { recursive: true, force: true });
   }
   await browser.close();
