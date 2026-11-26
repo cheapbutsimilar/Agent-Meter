@@ -98,27 +98,56 @@
 
   // ------------------------------------------------------------------ agent moods
   // Playful life for the floating card only: the strip stays calm so it never gets in the
-  // way of the taskbar. Two things can happen:
-  //   * chaos encounter — a limit hits 0% (or, rarely, nothing at all): the card bounces and
-  //     the agent's logo spins, everything stops dead for a moment, then one flat quip
-  //     ("ㅋㅋ" in Korean, "bruh." in every other language) before it quietly goes back to normal.
-  //   * a click on an agent — a random little mood (blush, sweat, dizzy, hearts, sleepy).
+  // way of the taskbar. Two separate repertoires, each with its own motions and lines:
+  //   * POKES — only when you click an agent: an instant reaction to the touch (blush,
+  //     startle, tickle, grumble, a shy heart).
+  //   * ENCOUNTERS — on their own while the card sits there: dozing off (mostly at night),
+  //     a cold sweat, a dizzy spell, a little cheer, and, rarely, the chaos encounter. A limit
+  //     that hits 0% always gets the chaos one: the card bounces and the agent's logo spins,
+  //     everything stops dead for 3 s, then one flat quip ("ㅋㅋ" in Korean, "bruh." otherwise).
   // Every stage is keyed to elapsed time, so a re-render in the middle picks the animation up
   // where it is instead of restarting it (the widget re-renders on stage boundaries).
   const CHAOS_FIT = 1800; // bounce + spin
   const CHAOS_STILL = 4800; // everything frozen (3 s of stillness)
   const CHAOS_LINE = 7800; // one quip, then done
-  const RANDOM_GAP = 30 * 60 * 1000; // no sudden chaos more often than this
-  const MOOD_MS = 2600;
-  const MOODS = [
-    { id: 'blush', emoji: '😳', keys: ['w.mood.blush', 'w.mood.blush2'] },
-    { id: 'sweat', emoji: '💦', keys: ['w.mood.sweat', 'w.mood.sweat2'] },
-    { id: 'dizzy', emoji: '💫', keys: ['w.mood.dizzy', 'w.mood.dizzy2'] },
-    { id: 'love', emoji: '💗', keys: ['w.mood.love', 'w.mood.love2'] },
-    { id: 'sleep', emoji: '💤', keys: ['w.mood.sleep', 'w.mood.sleep2'] },
+  const MOOD_MS = 2600; // a poke or a small encounter
+  const ENC_GAP = 3 * 60 * 1000; // at least this long between random encounters
+  const ENC_CHANCE = 0.2; // per roll once the gap has passed (the widget renders about every 30 s)
+  const ROLL_GAP = 5000; // fast re-renders (the settings preview) roll at most this often
+  const CHAOS_GAP = 25 * 60 * 1000; // random chaos no more often than this
+  /** Click reactions. */
+  const POKES = [
+    { id: 'blush', emoji: '😳', keys: ['w.poke.blush'] },
+    { id: 'startle', emoji: '❗', keys: ['w.poke.startle'] },
+    { id: 'tickle', emoji: '🤭', keys: ['w.poke.tickle'] },
+    { id: 'grumble', emoji: '💢', keys: ['w.poke.grumble'] },
+    { id: 'shyheart', emoji: '💗', keys: ['w.poke.shyheart'] },
   ];
-  // chaos: {id, at}, mood: {id, at, kind, emoji, line}; the first roll waits for the app to settle
-  const moodFx = { chaos: null, mood: null, lastRandom: Date.now(), lastRoll: 0 };
+  /** Random encounters (chaos has its own timeline; the others last MOOD_MS). */
+  const ENCOUNTERS = [
+    { id: 'chaos' },
+    { id: 'sleep', emoji: '💤', keys: ['w.enc.sleep', 'w.enc.sleep2'] },
+    { id: 'sweat', emoji: '💦', keys: ['w.enc.sweat', 'w.enc.sweat2'] },
+    { id: 'dizzy', emoji: '💫', keys: ['w.enc.dizzy', 'w.enc.dizzy2'] },
+    { id: 'cheer', emoji: '✨', keys: ['w.enc.cheer', 'w.enc.cheer2'] },
+  ];
+  /** How likely each encounter is; dozing off takes over at night (22:00–06:00 local). */
+  function encounterWeights(now, chaosOk) {
+    const h = new Date(now).getHours();
+    const night = h >= 22 || h < 6;
+    return { chaos: chaosOk ? 1 : 0, sleep: night ? 9 : 1.5, sweat: 3, dizzy: 3, cheer: 3 };
+  }
+  function weighted(weights) {
+    const total = Object.values(weights).reduce((a, w) => a + w, 0);
+    let r = Math.random() * total;
+    for (const [id, w] of Object.entries(weights)) {
+      if ((r -= w) < 0) return id;
+    }
+    return Object.keys(weights)[0];
+  }
+  // chaos: {id, at}; mood: {id, at, kind, src: 'poke' | 'enc', emoji, line}.
+  // The first random encounter waits a full gap after the app starts.
+  const moodFx = { chaos: null, mood: null, lastEnc: Date.now(), lastChaos: 0, lastRoll: 0, cycle: { poke: -1, enc: -1 } };
   const chaosSeen = {}; // provider id -> a 0% limit already got its encounter
   const pickOne = (a) => a[Math.floor(Math.random() * a.length)];
 
@@ -126,17 +155,25 @@
     if (!id) return false;
     moodFx.chaos = { id, at: now };
     moodFx.mood = null;
+    moodFx.lastChaos = now;
+    moodFx.lastEnc = now;
     return true;
   }
 
-  function startMood(id, now, kind) {
+  function startMood(src, id, now, kind) {
     if (!id) return false;
-    const m = (kind && MOODS.find((x) => x.id === kind)) || pickOne(MOODS);
-    moodFx.mood = { id, at: now, kind: m.id, emoji: m.emoji, line: pickOne(m.keys) };
+    const list = src === 'poke' ? POKES : ENCOUNTERS.filter((e) => e.id !== 'chaos');
+    const m = (kind && list.find((x) => x.id === kind)) || pickOne(list);
+    moodFx.mood = { id, at: now, kind: m.id, src, emoji: m.emoji, line: pickOne(m.keys) };
+    if (src === 'enc') moodFx.lastEnc = now;
     return true;
   }
 
-  /** Where the encounter is right now (null once it is over). */
+  function startEncounter(id, now, kind) {
+    return kind === 'chaos' ? startChaos(id, now) : startMood('enc', id, now, kind);
+  }
+
+  /** Where the chaos encounter is right now (null once it is over). */
   function chaosStage(c, now) {
     const age = now - c.at;
     if (age < CHAOS_FIT) return { stage: 'bounce', age: Math.max(0, age) };
@@ -145,7 +182,7 @@
     return null;
   }
 
-  /** ms until the encounter's next stage (0 when there is none) — widget.js re-renders then. */
+  /** ms until the chaos encounter's next stage (0 when there is none). */
   function chaosNext(now = Date.now()) {
     if (!moodFx.chaos) return 0;
     const age = now - moodFx.chaos.at;
@@ -153,7 +190,15 @@
     return 0;
   }
 
-  /** Drop finished effects, spot a limit that just hit 0%, and now and then cause trouble. */
+  /** ms until anything on screen changes stage or ends (0 when nothing runs) — widget.js
+   * re-renders then, so a finished reaction leaves and the next stage shows on time. */
+  function fxNext(now = Date.now()) {
+    const c = chaosNext(now);
+    const m = moodFx.mood ? Math.max(40, moodFx.mood.at + MOOD_MS - now) : 0;
+    return c && m ? Math.min(c, m) : c || m;
+  }
+
+  /** Drop finished effects, spot a limit that just hit 0%, and now and then do something. */
   function advanceFx(list, settings, now) {
     if (moodFx.chaos && !chaosStage(moodFx.chaos, now)) moodFx.chaos = null;
     if (moodFx.mood && now - moodFx.mood.at >= MOOD_MS) moodFx.mood = null;
@@ -163,6 +208,7 @@
       for (const p of list) delete chaosSeen[p.id];
       return;
     }
+    // a limit at 0%: always the chaos encounter, once per drop
     for (const p of list) {
       const done = memeLevel(U.visibleWindows(p, settings, settings.floating)) === 'done';
       if (!done) {
@@ -172,28 +218,46 @@
         startChaos(p.id, now);
       }
     }
-    // one roll every few seconds at most, so fast re-renders (the settings preview) don't spam it
-    if (!moodFx.chaos && list.length && now - moodFx.lastRoll > 5000 && now - moodFx.lastRandom > RANDOM_GAP) {
+    // left alone for a while: a random encounter now and then (never over another one)
+    const busy = moodFx.chaos || moodFx.mood;
+    if (!busy && list.length && now - moodFx.lastRoll > ROLL_GAP && now - moodFx.lastEnc > ENC_GAP) {
       moodFx.lastRoll = now;
-      if (Math.random() < 0.04) {
-        moodFx.lastRandom = now;
-        startChaos(pickOne(list).id, now);
+      if (Math.random() < ENC_CHANCE) {
+        const kind = weighted(encounterWeights(now, now - moodFx.lastChaos > CHAOS_GAP));
+        startEncounter(pickOne(list).id, now, kind);
       }
     }
   }
 
-  /** A click on an agent in the card (widget.js). */
+  /** A click on an agent in the card (widget.js): one of the click-only reactions. */
   function poke(id, settings, now = Date.now()) {
     if (settings && settings.moods === false) return false;
-    return startMood(id, now);
+    if (moodFx.chaos) return false; // the chaos encounter plays out undisturbed
+    return startMood('poke', id, now);
   }
 
-  /** The settings page previews both, without waiting for a 0% limit. */
+  /** The settings page steps through each repertoire, one kind per press. */
+  function previewPoke(id, now = Date.now()) {
+    moodFx.cycle.poke = (moodFx.cycle.poke + 1) % POKES.length;
+    const kind = POKES[moodFx.cycle.poke].id;
+    moodFx.chaos = null;
+    startMood('poke', id, now, kind);
+    return kind;
+  }
+  function previewEncounter(id, now = Date.now()) {
+    moodFx.cycle.enc = (moodFx.cycle.enc + 1) % ENCOUNTERS.length;
+    const kind = ENCOUNTERS[moodFx.cycle.enc].id;
+    moodFx.chaos = null;
+    moodFx.mood = null;
+    startEncounter(id, now, kind);
+    return kind;
+  }
+  /** Older names, kept for scripts: chaos, and a random click reaction. */
   function previewChaos(id, now = Date.now()) {
     return startChaos(id, now);
   }
   function previewMood(id, now = Date.now()) {
-    return startMood(id, now);
+    return startMood('poke', id, now);
   }
 
   // ------------------------------------------------------------------ today / 7 days
@@ -309,8 +373,8 @@
       const ws = U.visibleWindows(p, settings, o);
       const mine = chaos && moodFx.chaos.id === p.id ? chaos : null;
       const mood = !chaos && moodFx.mood && moodFx.mood.id === p.id ? moodFx.mood : null;
-      html += `<section class="prov${mood ? ` mood-${mood.kind}` : ''}" data-id="${p.id}"` +
-        `${mine ? ` data-fx="${mine.stage}"` : ''}${mood ? ` style="animation-delay:-${Math.round(now - mood.at)}ms"` : ''}>`;
+      html += `<section class="prov${mood ? ` mood ${mood.src}-${mood.kind}` : ''}" data-id="${p.id}"` +
+        `${mine ? ` data-fx="${mine.stage}"` : ''}${mood ? ` style="--fx-delay:-${Math.round(now - mood.at)}ms;animation-delay:-${Math.round(now - mood.at)}ms"` : ''}>`;
       html += `<div class="ph">`;
       if (o.logo) html += logo(p.id, 18);
       if (o.name) html += `<span class="nm">${esc(p.name)}</span>`;
@@ -326,7 +390,7 @@
           : ''
         : meme(p, ws, now);
       if (bubble) html += `<div class="mrow">${bubble}</div>`;
-      if (mood) html += `<div class="mrow"><span class="meme quip mood" style="animation-delay:-${Math.round(now - mood.at)}ms">${esc(tr(mood.line))}</span></div>`;
+      if (mood) html += `<div class="mrow"><span class="meme quip mood ${mood.src}" style="animation-delay:-${Math.round(now - mood.at)}ms">${esc(tr(mood.line))}</span></div>`;
       for (const w of ws) {
         const sev = U.severity(w.usedPercent, settings.alertThresholds);
         const val = U.shown(w, settings);
@@ -390,8 +454,12 @@
     poke,
     previewChaos,
     previewMood,
+    previewPoke,
+    previewEncounter,
     chaosNext,
-    MOODS,
+    fxNext,
+    POKES,
+    ENCOUNTERS,
     MOOD_MS,
     CHAOS_MS: { fit: CHAOS_FIT, still: CHAOS_STILL, line: CHAOS_LINE },
   };

@@ -42,9 +42,10 @@
       clearTimeout(memeTimer);
       memeTimer = setTimeout(render, R.MEME_MS + 100);
     }
-    // the chaos encounter moves on a clock: come back for each of its stages
+    // reactions and encounters move on a clock: come back for each stage and for the end
+    // (also for a random encounter that started during this render)
     clearTimeout(chaosTimer);
-    const nextStage = R.chaosNext();
+    const nextStage = R.fxNext();
     if (nextStage) chaosTimer = setTimeout(render, nextStage + 30);
     const el = root.firstElementChild;
     if (!el) return;

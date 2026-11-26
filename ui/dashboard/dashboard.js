@@ -415,8 +415,8 @@
       esc(tr('disp.moods')),
       esc(tr('disp.moods.sub')),
       `<div class="fx-row">${sw('data-set="moods"', s.moods !== false)}` +
-        `<button class="btn sm" data-act="fx-chaos">${esc(tr('disp.moods.chaos'))}</button>` +
-        `<button class="btn sm" data-act="fx-mood">${esc(tr('disp.moods.mood'))}</button></div>`,
+        `<button class="btn sm" data-act="fx-poke">${esc(tr('disp.moods.poke'))}</button>` +
+        `<button class="btn sm" data-act="fx-enc">${esc(tr('disp.moods.enc'))}</button></div>`,
     );
     html += rowT('disp.onTop', sw('data-set="alwaysOnTop"', s.alwaysOnTop));
     html += rowT('disp.lock', sw('data-set="lockPosition"', s.lockPosition));
@@ -892,13 +892,14 @@
       case 'receipt':
         window.AM_RECEIPT.open(S, { toast });
         break;
-      case 'fx-chaos':
-      case 'fx-mood': {
-        // the card preview plays it for real: 8 seconds of the same timeline the widget runs
+      case 'fx-poke':
+      case 'fx-enc': {
+        // the card preview plays it for real on the first agent; each press moves on to the
+        // repertoire's next kind, so every one of them can be seen
         const first = R.shownProviders(S.usage, ui.previewSettings || S.settings)[0];
         if (!first) break;
-        if (el.dataset.act === 'fx-chaos') R.previewChaos(first.id);
-        else R.previewMood(first.id);
+        const kind = el.dataset.act === 'fx-poke' ? R.previewPoke(first.id) : R.previewEncounter(first.id);
+        toast(tr('toast.fx', { name: tr(`fx.${kind}`) }));
         const t0 = Date.now();
         const tick = () => {
           drawPreviews();

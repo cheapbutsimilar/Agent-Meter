@@ -495,81 +495,129 @@
   }
 }
 
-.w.floating .prov.mood-blush {
-  animation: am-mood-blush 2.6s ease-in-out both;
+/* ---- click reactions (poke-*): quick, a direct answer to the touch */
+/* blush: a pink glow and a shy little wobble */
+.w.floating .prov.poke-blush {
+  animation: am-poke-blush 2.6s ease-in-out both;
 }
-@keyframes am-mood-blush {
+@keyframes am-poke-blush {
   0%,
   100% {
     transform: none;
   }
-  15%,
-  45%,
-  75% {
+  12%,
+  36% {
     transform: translateX(1.5px) rotate(0.25deg);
   }
-  30%,
-  60%,
-  90% {
+  24%,
+  48% {
     transform: translateX(-1.5px) rotate(-0.25deg);
   }
+  60% {
+    transform: none;
+  }
 }
-.w.floating .prov.mood-blush::after,
-.w.floating .prov.mood-love::after {
+.w.floating .prov.poke-blush::after,
+.w.floating .prov.poke-shyheart::after {
   content: '';
   position: absolute;
   inset: 0;
   pointer-events: none;
   background: radial-gradient(150px 70px at 18% 6%, rgba(255, 108, 140, 0.22), transparent 70%);
+  animation: am-glow 2.6s ease-in-out both;
 }
-.w.floating .prov.mood-sweat {
-  animation: am-mood-sweat 2.6s ease-in-out both;
-}
-@keyframes am-mood-sweat {
+@keyframes am-glow {
   0%,
   100% {
-    transform: none;
+    opacity: 0;
   }
-  20% {
-    transform: translateY(2px);
-  }
-  45% {
-    transform: translateY(-1px);
-  }
-  70% {
-    transform: translateY(1.5px);
-  }
-}
-.w.floating .prov.mood-dizzy {
-  animation: am-mood-dizzy 2.6s ease-in-out both;
-}
-@keyframes am-mood-dizzy {
-  0%,
-  100% {
-    transform: none;
-  }
-  20% {
-    transform: rotate(0.7deg);
-  }
-  40% {
-    transform: rotate(-0.8deg);
-  }
-  60% {
-    transform: rotate(0.6deg);
-  }
+  15%,
   80% {
-    transform: rotate(-0.4deg);
+    opacity: 1;
   }
 }
-.w.floating .prov.mood-love::before {
+/* startle: a jump straight up, then settling */
+.w.floating .prov.poke-startle .ph {
+  animation: am-poke-startle 2.6s cubic-bezier(0.2, 0.9, 0.3, 1) both;
+}
+@keyframes am-poke-startle {
+  0% {
+    transform: none;
+  }
+  5% {
+    transform: translateY(-5px) scale(1.04);
+  }
+  12% {
+    transform: translateY(1px) scale(0.99);
+  }
+  18%,
+  100% {
+    transform: none;
+  }
+}
+.w.floating .prov.poke-startle .mo {
+  animation: am-mo-pop 2.6s ease-out both;
+}
+@keyframes am-mo-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.2);
+  }
+  6% {
+    opacity: 1;
+    transform: scale(1.5);
+  }
+  14%,
+  80% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+/* tickle: fast tiny twitches, a squirm */
+.w.floating .prov.poke-tickle {
+  animation: am-poke-tickle 0.16s linear 6 both;
+}
+@keyframes am-poke-tickle {
+  0%,
+  100% {
+    transform: none;
+  }
+  25% {
+    transform: translateX(1px) skewX(-0.6deg);
+  }
+  75% {
+    transform: translateX(-1px) skewX(0.6deg);
+  }
+}
+/* grumble: a sulky dip, the header dims for a moment */
+.w.floating .prov.poke-grumble .ph {
+  animation: am-poke-grumble 2.6s ease-in-out both;
+}
+@keyframes am-poke-grumble {
+  0%,
+  100% {
+    transform: none;
+    opacity: 1;
+  }
+  18%,
+  60% {
+    transform: translateY(1.5px) scale(0.985);
+    opacity: 0.7;
+  }
+}
+/* shy heart: one heart rises from beside the name */
+.w.floating .prov.poke-shyheart::before {
   content: '♥';
   position: absolute;
-  right: 18px;
-  top: 10px;
+  left: 60px;
+  top: 12px;
   color: #ff7b96;
-  font-size: 11px;
+  font-size: 12px;
   pointer-events: none;
-  animation: am-heart 1.3s ease-out 2 both;
+  animation: am-heart 1.6s ease-out both;
 }
 @keyframes am-heart {
   0% {
@@ -581,23 +629,154 @@
   }
   100% {
     opacity: 0;
-    transform: translateY(-14px) scale(1.05);
+    transform: translateY(-16px) scale(1.05);
   }
 }
-.w.floating .prov.mood-sleep .ph {
-  animation: am-breathe 2.6s ease-in-out both;
+
+/* ---- random encounters (enc-*): slower, something the agent does on its own */
+/* dozing off: the header nods down and dims, like eyes closing */
+.w.floating .prov.enc-sleep .ph {
+  transform-origin: 0 100%;
+  animation: am-enc-nod 1.3s ease-in-out 2 both;
 }
-@keyframes am-breathe {
+@keyframes am-enc-nod {
   0%,
   100% {
+    transform: none;
     opacity: 1;
   }
-  40% {
-    opacity: 0.55;
+  45% {
+    transform: translateY(2px) rotate(1.2deg);
+    opacity: 0.5;
   }
   60% {
-    opacity: 0.75;
+    transform: translateY(2.5px) rotate(1.4deg);
+    opacity: 0.45;
   }
+}
+.w.floating .prov.enc-sleep .mo {
+  animation: am-zzz 2.6s ease-out both;
+}
+@keyframes am-zzz {
+  0% {
+    opacity: 0;
+    transform: translate(0, 4px) scale(0.6);
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(6px, -10px) scale(1.1);
+  }
+}
+/* cold sweat: fidgeting, a drop running down */
+.w.floating .prov.enc-sweat {
+  animation: am-enc-fidget 0.65s ease-in-out 4 both;
+}
+@keyframes am-enc-fidget {
+  0%,
+  100% {
+    transform: none;
+  }
+  30% {
+    transform: translateX(-1px);
+  }
+  70% {
+    transform: translateX(1px);
+  }
+}
+.w.floating .prov.enc-sweat::before {
+  content: '';
+  position: absolute;
+  left: 22px;
+  top: 8px;
+  width: 4px;
+  height: 6px;
+  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+  background: #7cc4ff;
+  pointer-events: none;
+  animation: am-drop 1.3s ease-in 2 both;
+}
+@keyframes am-drop {
+  0% {
+    opacity: 0;
+    transform: translateY(0);
+  }
+  20% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+/* dizzy: a slow sway that winds down into a blank stare */
+.w.floating .prov.enc-dizzy {
+  animation: am-enc-dizzy 2.6s ease-in-out both;
+}
+@keyframes am-enc-dizzy {
+  0% {
+    transform: none;
+  }
+  15% {
+    transform: rotate(0.8deg);
+  }
+  30% {
+    transform: rotate(-0.8deg);
+  }
+  45% {
+    transform: rotate(0.4deg);
+  }
+  60%,
+  100% {
+    transform: none;
+  }
+}
+.w.floating .prov.enc-dizzy .logo {
+  animation: am-chaos-spin 1.3s ease-out 1 both;
+}
+/* cheer: hearts float up across the row while the header bobs */
+.w.floating .prov.enc-cheer .ph {
+  animation: am-enc-bob 0.65s ease-in-out 3 both;
+}
+@keyframes am-enc-bob {
+  0%,
+  100% {
+    transform: none;
+  }
+  50% {
+    transform: translateY(-1.5px);
+  }
+}
+.w.floating .prov.enc-cheer::before,
+.w.floating .prov.enc-cheer::after {
+  content: '♥';
+  position: absolute;
+  top: 14px;
+  color: #ff9fb3;
+  font-size: 10px;
+  pointer-events: none;
+  animation: am-heart 1.5s ease-out 1 both;
+}
+.w.floating .prov.enc-cheer::before {
+  right: 70px;
+}
+.w.floating .prov.enc-cheer::after {
+  right: 44px;
+  font-size: 12px;
+  animation-delay: 0.45s;
+}
+
+/* a re-render in the middle of a reaction picks every part of it up where it is */
+.w.floating .prov.mood .ph,
+.w.floating .prov.mood .logo,
+.w.floating .prov.mood::before,
+.w.floating .prov.mood::after {
+  animation-delay: var(--fx-delay, 0ms);
+}
+.w.floating .prov.mood.enc-cheer::after {
+  animation-delay: calc(var(--fx-delay, 0ms) + 0.45s);
 }
 
 /* a quip bubble (click mood or the encounter's last line): in, hold, out */

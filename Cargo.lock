@@ -10,7 +10,7 @@ checksum = "320119579fcad9c21884f5c4861d16174d0e06250625266f50fe6898340abefa"
 
 [[package]]
 name = "agentmeter"
-version = "0.2.36"
+version = "0.2.37"
 dependencies = [
  "agentmeter-antigravity",
  "agentmeter-core",
@@ -36,7 +36,7 @@ dependencies = [
 
 [[package]]
 name = "agentmeter-antigravity"
-version = "0.2.36"
+version = "0.2.37"
 dependencies = [
  "chrono",
  "serde",
@@ -47,7 +47,7 @@ dependencies = [
 
 [[package]]
 name = "agentmeter-core"
-version = "0.2.36"
+version = "0.2.37"
 dependencies = [
  "agentmeter-antigravity",
  "chrono",
@@ -60,7 +60,7 @@ dependencies = [
 
 [[package]]
 name = "agentmeter-devserver"
-version = "0.2.36"
+version = "0.2.37"
 dependencies = [
  "tiny_http",
 ]
