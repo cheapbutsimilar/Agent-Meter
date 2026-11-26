@@ -109,7 +109,7 @@ function stage(lang) {
   </style></head><body>
   <div class="cap" id="cap"><div class="brand"><i></i>AgentMeter</div><h1 id="h1"></h1><p id="p"></p></div>
   <div class="key" id="key"><b>PageUp</b></div>
-  <div class="lapse"><i></i>${TEXT[lang].lapse}</div>
+  <div class="lapse" id="lapse"><i></i>${TEXT[lang].lapse}</div>
   <div class="ripple" id="rip0"></div><div class="ripple" id="rip1"></div>
   <svg id="cursor" viewBox="0 0 20 24"><path d="M2 2v17.5l4.6-4.4 3 6.9 3.1-1.3-3-6.8H16z" fill="#fff" stroke="#111" stroke-width="1.4" stroke-linejoin="round"/></svg>
   <div id="world">
@@ -287,6 +287,7 @@ function stageApi(desk) {
     $('h1').textContent = f.cap[0];
     $('p').textContent = f.cap[1];
     $('cap').classList.toggle('small', !!f.small && !f.dashCap);
+    $('cap').style.opacity = $('lapse').style.opacity = String(f.capO ?? 1);
     $('cap').classList.toggle('dash', !!f.dashCap);
     document.body.classList.toggle('cardshot', f.mode >= 0.5 && !f.dashCap);
     $('clock').innerHTML = f.clock;
@@ -381,6 +382,10 @@ const TENSION = bezier(0.85, 0, 0.15, 1);
 const SOFT = (x) => (x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2);
 const OUT_CUBIC = (x) => 1 - Math.pow(1 - x, 3);
 
+/** Caption fades around the dashboard's opening and closing, seconds. */
+const CAP_OUT = 0.12;
+const CAP_IN = 0.15;
+
 /** Dashboard tabs clicked through, in order (the first one the window opens on is overview). */
 const TABS = ['analytics', 'display', 'appearance', 'agents'];
 /** Per tab: the pointer travels, then rests on the page; 0.62 s a step on average (15.5 frames
@@ -413,17 +418,19 @@ function segments(T) {
     // ④ double-click the card: the dashboard opens out of it and four pages get a quick look
     // (the caption stays in the left column until the window takes the frame)
     S('double-click', 0.46, ['cardBot', 'cardBot'], T.e, { ...C, cur: { from: 'cardIn', to: 'card', o: [0, 1], clicks: [0.16, 0.3] } }),
-    S('open', 0.45, ['cardBot', 'dash'], T.e, { ...C, dashCap: true, dash: [0, 1], cur: { from: 'card', to: 'card', o: [1, 1] } }),
+    // captions never sit on a scene that is changing: the old one fades out as a transition
+    // starts (CAP_OUT), the new one fades in once the next scene has settled (CAP_IN)
+    S('open', 0.45, ['cardBot', 'dash'], T.e, { ...C, capOut: true, dash: [0, 1], cur: { from: 'card', to: 'card', o: [1, 1] } }),
   ];
   let at = 'card';
   for (const [i, tab] of TABS.entries()) {
-    out.push(S(`tab ${tab}`, TAB_FRAMES[i % 2] / FPS, ['dash', 'dash'], T.e, { ...C, dashCap: true, dash: [1, 1], cur: { from: at, to: `tab:${tab}`, o: [1, 1], clicks: [TAB_MOVE], tab } }));
+    out.push(S(`tab ${tab}`, TAB_FRAMES[i % 2] / FPS, ['dash', 'dash'], T.e, { ...C, dashCap: true, capIn: i === 0, dash: [1, 1], cur: { from: at, to: `tab:${tab}`, o: [1, 1], clicks: [TAB_MOVE], tab } }));
     at = `tab:${tab}`;
   }
   out.push(
-    S('close', 0.42, ['dash', 'cardBot'], T.e, { ...C, dashCap: true, dash: [1, 0], cur: { from: at, to: at, o: [1, 0] } }),
+    S('close', 0.42, ['dash', 'cardBot'], T.e, { ...C, dashCap: true, capOut: true, dash: [1, 0], cur: { from: at, to: at, o: [1, 0] } }),
     // ⑤ PageUp again: back to the strip, zoomed on the clock end, then pan back along it
-    S('PageUp', 0.3, ['cardBot', 'cardBot'], T.d, { ...C, key: [1, 1] }),
+    S('PageUp', 0.3, ['cardBot', 'cardBot'], T.d, { ...C, capIn: true, key: [1, 1] }),
     S('to strip', 0.72, ['cardBot', 'zr'], T.d, { mode: [1, 0], key: [1, 1], down: 0.27 }),
     S('strip back', 1.6, ['zr', 'zl'], T.d, { dt: 9.6, key: [1, 0] }),
     S('strip start', 0.3, ['zl', 'zl'], T.d),
@@ -484,6 +491,8 @@ function timeline(T) {
         cap: g.cap,
         small: g.cap === T.c || g.cap === T.d || g.cap === T.e,
         dashCap: !!g.dashCap,
+        // caption (and time-lapse badge) opacity: 3 frames out, 4 frames in
+        capO: g.capOut ? Math.max(0, 1 - i / FPS / CAP_OUT) : g.capIn ? Math.min(1, i / FPS / CAP_IN) : 1,
         cur,
         click,
         hover,
