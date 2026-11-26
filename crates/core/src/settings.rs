@@ -188,6 +188,9 @@ pub struct Settings {
     pub hotkey_dashboard: String,
     /// "used" or "remaining".
     pub value_mode: String,
+    /// Token and API-equivalent figures in the widget and the overview: "today" or "week"
+    /// (the last 7 days).
+    pub stats_period: String,
     /// "relative" (2h 13m) or "clock" (14:30).
     pub reset_format: String,
     /// How API-equivalent costs are shown: "usd", "krw", "both", or "auto" (both when the
@@ -265,6 +268,7 @@ impl Default for Settings {
             hotkey_visible: "Shift+PageUp".into(),
             hotkey_dashboard: String::new(),
             value_mode: "remaining".into(),
+            stats_period: "today".into(),
             reset_format: "relative".into(),
             currency: "auto".into(),
             language: "auto".into(),
@@ -379,6 +383,9 @@ impl Settings {
         }
         if self.value_mode != "used" && self.value_mode != "remaining" {
             self.value_mode = "remaining".into();
+        }
+        if self.stats_period != "today" && self.stats_period != "week" {
+            self.stats_period = "today".into();
         }
         if self.reset_format != "relative" && self.reset_format != "clock" {
             self.reset_format = "relative".into();
@@ -562,5 +569,14 @@ mod tests {
             "C:\\agy\\agy.exe"
         );
         assert!(s.provider("antigravity").enabled);
+    }
+
+    #[test]
+    fn stats_period_defaults_to_today() {
+        assert_eq!(Settings::default().stats_period, "today");
+        let s = Settings::from_value(Some(json!({ "statsPeriod": "week" })));
+        assert_eq!(s.stats_period, "week");
+        let s = Settings::from_value(Some(json!({ "statsPeriod": "year" })));
+        assert_eq!(s.stats_period, "today");
     }
 }

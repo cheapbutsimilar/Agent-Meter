@@ -100,6 +100,9 @@ body {
   background: var(--bg-hover);
   color: var(--text);
 }
+.tb-btn.period.on {
+  color: var(--accent);
+}
 .tb-btn.close:hover {
   background: #c42b1c;
   color: #fff;

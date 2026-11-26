@@ -164,6 +164,7 @@
       }
     }
     const sum = (f) => list.reduce((a, p) => a + (f(p.tokens) || 0), 0);
+    const week = S.settings.statsPeriod === 'week';
     const topSev = top ? U.severity(top.w.usedPercent, S.settings.alertThresholds) : 'none';
     const kpis = [
       [
@@ -173,10 +174,11 @@
           ? `<span class="status ${topSev === 'ok' ? '' : topSev}"><i></i><span>${esc(top.p.name)} ${esc(top.w.label)}${top.w.resetsAt ? esc(tr('kpi.resetIn', { t: U.fmtLeft(top.w.resetsAt - now) })) : ''}</span></span>`
           : esc(tr('kpi.noLimits')),
       ],
-      [esc(tr('kpi.today')), U.fmtNum(sum((t) => t.today)), esc(tr('kpi.todayNote'))],
+      // today, or the last 7 days (the period switch next to refresh)
+      [esc(tr(week ? 'kpi.week' : 'kpi.today')), U.fmtNum(sum((t) => (week ? t.week : t.today))), esc(tr('kpi.todayNote'))],
       [
-        esc(tr('kpi.cost')),
-        U.fmtMoneyHtml(sum((t) => t.costToday)),
+        esc(tr(week ? 'kpi.costWeek' : 'kpi.cost')),
+        U.fmtMoneyHtml(sum((t) => (week ? t.costWeek : t.costToday))),
         `<span title="${esc(tr('kpi.periods', { w: U.fmtMoney(sum((t) => t.costWeek)), m: U.fmtMoney(sum((t) => t.cost30d)) }).replace(' · ', '\n'))}">${esc(tr('kpi.periods', { w: U.fmtMoneyBrief(sum((t) => t.costWeek)), m: U.fmtMoneyBrief(sum((t) => t.cost30d)) }))}</span>`,
       ],
       [
@@ -661,6 +663,7 @@
     html += rowT('gen.logs', `<input class="inp num" type="number" min="5" max="600" data-set="pollLogsSec" value="${s.pollLogsSec}"/>`);
     html += rowT('gen.api', `<input class="inp num" type="number" min="60" max="3600" data-set="pollApiSec" value="${s.pollApiSec}"/>`);
     html += `</div><h2>${esc(tr('gen.costs'))}</h2><div class="card rows">`;
+    html += rowT('gen.period', seg('statsPeriod', [['today', esc(tr('period.today'))], ['week', esc(tr('period.week'))]], S.settings.statsPeriod === 'week' ? 'week' : 'today'));
     html += rowT('gen.currency', seg('currency', [['usd', esc(tr('gen.currency.usd'))], ['krw', esc(tr('gen.currency.krw'))], ['both', esc(tr('gen.currency.both'))]], U.currencyOf(s)));
     const m = U.money;
     const rateNote =
@@ -1136,6 +1139,19 @@
     }),
   );
   $('#btn-settings').addEventListener('click', () => go('general'));
+  /** The titlebar's today ↔ 7 days switch (same icon as the widget's). */
+  function paintPeriod() {
+    const week = S.settings.statsPeriod === 'week';
+    const b = $('#btn-period');
+    const t = tr(week ? 'w.period.week' : 'w.period.today');
+    b.innerHTML = R.periodIcon(week);
+    b.classList.toggle('on', week);
+    b.title = t;
+    b.setAttribute('aria-label', t);
+    b.setAttribute('aria-pressed', String(week));
+  }
+  paintPeriod();
+  $('#btn-period').addEventListener('click', () => set({ statsPeriod: S.settings.statsPeriod === 'week' ? 'today' : 'week' }));
   $('#btn-refresh').addEventListener('click', () => {
     api.refresh();
     toast(tr('toast.refreshing'));
@@ -1175,6 +1191,7 @@
     S.settings = s;
     ui.previewSettings = null;
     if (langChanged) applyLang();
+    paintPeriod();
     if (!typing() && !ui.recording) render();
   });
   api.on('event', (ev) => {

@@ -196,6 +196,21 @@
     return startMood(id, now);
   }
 
+  // ------------------------------------------------------------------ today / 7 days
+  /** Token and cost figures follow settings.statsPeriod: today, or the last 7 days. */
+  const isWeek = (settings) => settings && settings.statsPeriod === 'week';
+  const statTokens = (p, settings) => ((p.tokens || {})[isWeek(settings) ? 'week' : 'today']) || 0;
+  const statCost = (p, settings) => ((p.tokens || {})[isWeek(settings) ? 'costWeek' : 'costToday']) || 0;
+  /** A small calendar showing 1 (today) or 7 (the last 7 days); a click flips it. */
+  function periodIcon(week) {
+    return `<svg viewBox="0 0 24 24" class="per"><rect x="4" y="5.5" width="16" height="14.5" rx="2.6"/><path d="M4 9.8h16M8.6 3.5v3.6M15.4 3.5v3.6"/><text x="12" y="17.7" text-anchor="middle">${week ? 7 : 1}</text></svg>`;
+  }
+  function periodButton(settings) {
+    const week = isWeek(settings);
+    const t = esc(tr(week ? 'w.period.week' : 'w.period.today'));
+    return `<button class="ib period${week ? ' on' : ''}" data-act="period" title="${t}" aria-label="${t}" aria-pressed="${week}">${periodIcon(week)}</button>`;
+  }
+
   function shownProviders(usage, settings) {
     return (usage.providers || []).filter((p) => {
       const cfg = (settings.providers || {})[p.id] || {};
@@ -219,7 +234,7 @@
       if (o.name) html += `<span class="nm">${esc(p.name)}</span>`;
       if (bubble) html += bubble;
       if (!ws.length) {
-        html += `<span class="tok">${U.fmtNum(p.tokens.today)}</span>`;
+        html += `<span class="tok">${U.fmtNum(statTokens(p, settings))}</span>`;
       }
       for (let i = 0; i < ws.length; i += rowsMax) {
         html += `<div class="grp" style="grid-template-rows:repeat(${Math.min(rowsMax, ws.length - i)},1fr)">`;
@@ -238,8 +253,8 @@
       // Antigravity writes no token logs, so it has no token or cost figures
       if ((o.tokens || o.cost) && U.hasTokens(p.id)) {
         html += `<div class="ex">`;
-        if (o.tokens) html += `<span>${U.fmtNum(p.tokens.today)}</span>`;
-        if (o.cost) html += `<span>${U.fmtMoney(p.tokens.costToday)}</span>`;
+        if (o.tokens) html += `<span>${U.fmtNum(statTokens(p, settings))}</span>`;
+        if (o.cost) html += `<span>${U.fmtMoney(statCost(p, settings))}</span>`;
         html += `</div>`;
       }
       blocks.push(html + `</div>`);
@@ -254,7 +269,10 @@
     }
     if (!blocks.length) blocks.push(`<div class="prov empty">${esc(tr('w.noAgentsShort'))}</div>`);
     const gl = esc(tr('w.settings'));
-    const gear = o.gear !== false ? `<span class="sep"></span><button class="ib gear" data-act="settings" title="${gl}" aria-label="${gl}">${ICON.gear}</button>` : '';
+    // the today ↔ 7 days switch sits by the gear when the strip shows any tokens or cost
+    const showsTokens = o.tokens || o.cost || shownProviders(usage, settings).some((p) => !U.visibleWindows(p, settings, o).length);
+    const per = showsTokens ? periodButton(settings) : '';
+    const gear = o.gear !== false || per ? `<span class="sep"></span>${per}${o.gear !== false ? `<button class="ib gear" data-act="settings" title="${gl}" aria-label="${gl}">${ICON.gear}</button>` : ''}` : '';
     const free = ctx.docked === false ? ' free' : '';
     return `<div class="w taskbar${free}" style="--h:${h}px;--op:${settings.opacity}">${blocks.join('<span class="sep"></span>')}${gear}</div>`;
   }
@@ -283,6 +301,7 @@
     html += `<header class="head"><span class="mark"></span><span class="ttl">AgentMeter</span><span class="sp"></span>` +
       upd(list, usage, now) +
       `<button class="ib" data-act="refresh" title="${esc(tr('w.refresh'))}">${ICON.refresh}</button>` +
+      periodButton(settings) +
       `<button class="ib" data-act="dashboard" title="${esc(tr('w.dashboard'))}">${ICON.panel}</button>` +
       (o.gear !== false ? `<button class="ib" data-act="settings" title="${esc(tr('w.settings'))}" aria-label="${esc(tr('w.settings'))}">${ICON.gear}</button>` : '') +
       `</header>`;
@@ -330,8 +349,9 @@
       if (!ws.length) html += `<div class="meta"><span>${esc(tr(p.id === 'qwen' ? 'w.localOnly' : 'w.noLimits'))}</span></div>`;
       const stats = [];
       const counted = U.hasTokens(p.id);
-      if (o.tokens && counted) stats.push(tr('w.today', { n: U.fmtNum(p.tokens.today) }));
-      if (o.cost && counted) stats.push(`<b>${U.fmtMoney(p.tokens.costToday)}</b> <span title="${esc(tr('w.costTitle'))}">${esc(tr('w.cost'))}</span>`);
+      const week = isWeek(settings);
+      if (o.tokens && counted) stats.push(tr(week ? 'w.week' : 'w.today', { n: U.fmtNum(statTokens(p, settings)) }));
+      if (o.cost && counted) stats.push(`<b>${U.fmtMoney(statCost(p, settings))}</b> <span title="${esc(tr('w.costTitle'))}">${esc(tr('w.cost'))}</span>`);
       if (stats.length) html += `<div class="st">${stats.join('<i></i>')}</div>`;
       html += `</section>`;
     }
@@ -354,6 +374,9 @@
   }
 
   root.AM_RENDER = {
+    periodIcon,
+    statTokens,
+    statCost,
     widget,
     takeMemeEvents,
     MEME_MS,

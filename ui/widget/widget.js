@@ -95,6 +95,7 @@
     const b = e.target.closest('[data-act]');
     if (b) {
       if (b.dataset.act === 'refresh') api.refresh();
+      if (b.dataset.act === 'period') api.setSettings({ statsPeriod: S.settings.statsPeriod === 'week' ? 'today' : 'week' });
       if (b.dataset.act === 'dashboard') api.openDashboard('overview');
       if (b.dataset.act === 'settings') api.openDashboard('display');
       return;
